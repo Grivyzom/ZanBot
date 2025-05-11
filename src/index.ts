@@ -31,7 +31,6 @@ if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
 // Inicializa la colección de comandos
 client.commands = new Collection<string, Command>();
 console.log('Comandos cargados:', [...client.commands.keys()]);
-
 // Ruta y lectura de los archivos de comando
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs
