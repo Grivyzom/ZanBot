@@ -7,7 +7,7 @@ import path from 'path';
 (async () => {
   const { CLIENT_ID, GUILD_ID, DISCORD_TOKEN } = process.env;
   if (!CLIENT_ID || !GUILD_ID || !DISCORD_TOKEN) {
-    console.error('❌ Falta CLIENT_ID, GUILD_ID o TOKEN en .env');
+    console.error('❌ Falta CLIENT_ID, GUILD_ID o DISCORD_TOKEN en .env');
     return;
   }
 
