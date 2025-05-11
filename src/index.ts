@@ -1,40 +1,73 @@
 // src/index.ts
 import 'dotenv/config';
-import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import GuildMemberAdd from './events/guildMemberAdd';
-import GuildMemberRemove from './events/GuildMemberRemove';
-import { registerMessageFilter } from './messageFilter';
-import { data as embedText } from './commands/embedText';
-import { data as embedImage } from './commands/embedImage';
-import * as dotenv from 'dotenv';
-dotenv.config();
+import { Client, Collection, GatewayIntentBits, ChatInputCommandInteraction } from 'discord.js';
+import fs from 'fs';
+import path from 'path';
 
-const commands = [embedText.toJSON(), embedImage.toJSON()];
+type Command = {
+  data: { name: string; toJSON(): any };
+  execute: (interaction: ChatInputCommandInteraction) => Promise<any>;
+};
+
+// Extiende la interfaz Client para añadir la propiedad 'commands'
+declare module 'discord.js' {
+  interface Client {
+    commands: Collection<string, Command>;
+  }
+}
+
+// Inicializa el cliente de Discord con intents necesarios
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,   // para messageCreate
-    GatewayIntentBits.GuildBans,        // ¡necesario para guildBanAdd!
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.GuildMembers
-  ],
-  partials: [Partials.Channel]
+  intents: [GatewayIntentBits.Guilds]
 });
 
+// Carga variables de entorno
+const { TOKEN, CLIENT_ID, GUILD_ID } = process.env;
+if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
+  console.error('❌ Faltan TOKEN, CLIENT_ID o GUILD_ID en .env');
+  process.exit(1);
+}
+
+// Inicializa la colección de comandos
+client.commands = new Collection<string, Command>();
+
+// Ruta y lectura de los archivos de comando
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs
+  .readdirSync(commandsPath)
+  .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
+
+for (const file of commandFiles) {
+  const filePath = path.join(commandsPath, file);
+  const command: Command = require(filePath);
+  if ('data' in command && 'execute' in command) {
+    client.commands.set(command.data.name, command);
+  } else {
+    console.warn(`⚠️ El archivo ${file} no exporta correctamente 'data' y 'execute'.`);
+  }
+}
+
+// Evento ready
 client.once('ready', () => {
-  console.log(`🚀 Bot listo como ${client.user?.tag}`);
+  console.log(`✅ Conectado como ${client.user!.tag}`);
 });
 
-// Instanciamos la clase en lugar de “llamarla”
-// (antes hacías registerGuildMemberAdd(client);)
-new GuildMemberAdd(client);
-// Farewell handler
-new GuildMemberRemove(client);
-registerMessageFilter(client);
-// Aquí podrías registrar más clases/eventos de la misma forma
+// Manejador de interacciones slash
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand()) return;
 
+  const command = client.commands.get(interaction.commandName);
+  if (!command) return;
 
-client.login(process.env.DISCORD_TOKEN)
-  .then(() => console.log('Login exitoso'))
-  .catch(err => console.error('Error en login:', err));
+  try {
+    await command.execute(interaction);
+  } catch (error) {
+    console.error(`Error ejecutando ${interaction.commandName}:`, error);
+    if (!interaction.replied) {
+      await interaction.reply({ content: '❌ Ocurrió un error al ejecutar el comando.', ephemeral: true });
+    }
+  }
+});
+
+// Inicia sesión
+client.login(TOKEN);
