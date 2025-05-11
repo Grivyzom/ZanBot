@@ -4,6 +4,7 @@ import {
   CommandInteraction,
   EmbedBuilder
 } from 'discord.js';
+import { getEmbedColor } from '../utils/getEmbedColor';
 
 export const data = new SlashCommandBuilder()
   .setName('embed-text')
@@ -31,6 +32,12 @@ export const data = new SlashCommandBuilder()
       .setName('field_value')
       .setDescription('Valor del campo (opcional)')
       .setRequired(false)
+  )
+  .addStringOption(option =>
+    option
+      .setName('color')
+      .setDescription('Color en formato #RRGGBB o "random" (opcional)')
+      .setRequired(false)
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
@@ -38,11 +45,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const description = interaction.options.getString('description', true);
   const fieldTitle = interaction.options.getString('field_title');
   const fieldValue = interaction.options.getString('field_value');
+  const colorInput = interaction.options.getString('color');
 
   const embed = new EmbedBuilder()
     .setTitle(title)
     .setDescription(description)
-    .setColor('#0099ff')
+    .setColor(getEmbedColor(colorInput))
     .setTimestamp();
 
   // Sólo añade el campo si vienen ambos valores
