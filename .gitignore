@@ -1,0 +1,9 @@
+# Ignorar dependencias
+node_modules/
+
+# Ignorar variables de entorno
+.env
+
+# Otros comunes
+dist/
+*.log
