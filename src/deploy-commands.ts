@@ -5,8 +5,8 @@ import fs from 'fs';
 import path from 'path';
 
 (async () => {
-  const { CLIENT_ID, GUILD_ID, TOKEN } = process.env;
-  if (!CLIENT_ID || !GUILD_ID || !TOKEN) {
+  const { CLIENT_ID, GUILD_ID, DISCORD_TOKEN } = process.env;
+  if (!CLIENT_ID || !GUILD_ID || !DISCORD_TOKEN) {
     console.error('❌ Falta CLIENT_ID, GUILD_ID o TOKEN en .env');
     return;
   }
@@ -20,7 +20,7 @@ import path from 'path';
     commands.push(data.toJSON());
   }
 
-  const rest = new REST({ version: '10' }).setToken(TOKEN);
+  const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
   try {
     console.log(`🔄 Registrando ${commands.length} comandos en el guild ${GUILD_ID}…`);
     await rest.put(
@@ -32,3 +32,5 @@ import path from 'path';
     console.error('❌ Error registrando comandos:', err);
   }
 })();
+
+
