@@ -2,6 +2,10 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits, 
 import pool from '../database';
 import { getEmbedColor } from '../utils/getEmbedColor';
 
+// Configuración de validaciones
+const MIN_SUBJECT_LENGTH = 10;
+const MAX_TICKETS_PER_HOUR = 2;
+
 export const data = new SlashCommandBuilder()
   .setName('ticket')
   .setDescription('Crea un nuevo ticket')
@@ -15,9 +19,33 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const subject = interaction.options.getString('asunto', true);
   const userId = interaction.user.id;
   
+  // Validar longitud del asunto
+  if (subject.length < MIN_SUBJECT_LENGTH) {
+    await interaction.reply({
+      content: `⚠️ El asunto del ticket debe tener al menos ${MIN_SUBJECT_LENGTH} caracteres.`,
+      ephemeral: true
+    });
+    return;
+  }
+
+  // Verificar límite de tickets por hora
+  const [ticketCountResult] = await pool.query(
+    'SELECT COUNT(*) as count FROM tickets WHERE user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)',
+    [userId]
+  );
+  const ticketCount = (ticketCountResult as any)[0].count;
+
+  if (ticketCount >= MAX_TICKETS_PER_HOUR) {
+    await interaction.reply({
+      content: `⚠️ Has alcanzado el límite de ${MAX_TICKETS_PER_HOUR} tickets por hora. Intenta de nuevo más tarde.`,
+      ephemeral: true
+    });
+    return;
+  }
+
   // Inserta en DB
   const [result] = await pool.query(
-    'INSERT INTO tickets (user_id, subject) VALUES (?, ?)',
+    'INSERT INTO tickets (user_id, subject, created_at) VALUES (?, ?, NOW())',
     [userId, subject]
   );
   const ticketId = (result as any).insertId;
