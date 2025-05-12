@@ -1,0 +1,40 @@
+CREATE TABLE IF NOT EXISTS invites (
+  invite_code VARCHAR(10) PRIMARY KEY,          -- Código único de la invitación
+  guild_id    VARCHAR(20)  NOT NULL,            -- Servidor al que pertenece
+  user_id     VARCHAR(20)  NOT NULL,            -- Usuario que la generó
+  expires_at  DATETIME     NOT NULL,            -- Fecha y hora de expiración
+  uses        TINYINT UNSIGNED NOT NULL DEFAULT 1, -- Nº máximo de usos
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_user_time (user_id, created_at)       -- Índice para rate-limit rápido
+)
+
+-- ── Tabla de tickets ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS tickets (
+  ticket_id          INT AUTO_INCREMENT PRIMARY KEY,
+  user_id            VARCHAR(20)       NOT NULL,          -- autor del ticket
+  subject            TEXT              NOT NULL,
+  status             ENUM('OPEN','ASSIGNED','CLOSED')
+                       NOT NULL DEFAULT 'OPEN',
+  assigned_staff_id  VARCHAR(20),                         -- staff que lo toma
+  created_at         TIMESTAMP         DEFAULT CURRENT_TIMESTAMP,
+  updated_at         TIMESTAMP         DEFAULT CURRENT_TIMESTAMP
+                                         ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_user_time (user_id, created_at)                 -- rate-limit rápido
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+-- ── Tabla de reports ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS reports (
+  report_id    INT AUTO_INCREMENT PRIMARY KEY,
+  reporter_id  VARCHAR(20) NOT NULL,           -- quién reporta
+  reported_id  VARCHAR(20) NOT NULL,           -- usuario acusado
+  reason       TEXT        NOT NULL,
+  channel_id   VARCHAR(20),                    -- canal donde ocurrió (nullable)
+  created_at   TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_reported (reported_id)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
