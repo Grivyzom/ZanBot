@@ -15,7 +15,7 @@ import { getEmbedColor } from '../utils/getEmbedColor';
 import { setTimeout } from 'node:timers/promises';
 import { requireRole } from '../utils/requireRole';
 
-const STAFF_ROLE_ID = '123456789012345678'; // <-- Pon aquí el ID real del rol
+const STAFF_ROLE_ID = '1371291792988831864'; // <-- Pon aquí el ID real del rol
 // Interfaz para los resultados de votación
 interface PollResults {
   [key: number]: {

@@ -2,6 +2,9 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { getEmbedColor } from '../utils/getEmbedColor';
+import { requireRole } from '../utils/requireRole';
+
+const STAFF_ROLE_ID = '1371291792988831864'; // <-- Pon aquí el ID real de tu rol
 
 export const data = new SlashCommandBuilder()
   .setName('embed-image')
@@ -21,7 +24,7 @@ export const data = new SlashCommandBuilder()
   )
   .addStringOption(option =>
     option
-      .setName('image_url')     // <-- aquí la movemos
+      .setName('image_url')
       .setDescription('URL de la imagen')
       .setRequired(true)
   )
@@ -47,13 +50,18 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const title = interaction.options.getString('title', true);
-  const description = interaction.options.getString('description', true);
-  const imageUrl = interaction.options.getString('image_url', true);
+  // 1) Verificación de rol
+  if (!(await requireRole(STAFF_ROLE_ID)(interaction))) return;
+
+  // 2) Obtener opciones
+  const title      = interaction.options.getString('title', true);
+  const description= interaction.options.getString('description', true);
+  const imageUrl   = interaction.options.getString('image_url', true);
   const fieldTitle = interaction.options.getString('field_title');
   const fieldValue = interaction.options.getString('field_value');
   const colorInput = interaction.options.getString('color');
 
+  // 3) Construir el embed
   const embed = new EmbedBuilder()
     .setTitle(title)
     .setDescription(description)
@@ -65,5 +73,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     embed.addFields({ name: fieldTitle, value: fieldValue });
   }
 
+  // 4) Enviar respuesta
   await interaction.reply({ embeds: [embed] });
 }

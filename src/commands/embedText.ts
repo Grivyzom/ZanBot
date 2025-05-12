@@ -1,10 +1,13 @@
+// src/commands/embedText.ts
 import { SlashCommandBuilder } from '@discordjs/builders';
 import {
   ChatInputCommandInteraction,
-  CommandInteraction,
   EmbedBuilder
 } from 'discord.js';
 import { getEmbedColor } from '../utils/getEmbedColor';
+import { requireRole } from '../utils/requireRole';
+
+const STAFF_ROLE_ID = '123456789012345678'; // <-- ID real de tu rol
 
 export const data = new SlashCommandBuilder()
   .setName('embed-text')
@@ -41,22 +44,27 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const title = interaction.options.getString('title', true);
-  const description = interaction.options.getString('description', true);
-  const fieldTitle = interaction.options.getString('field_title');
-  const fieldValue = interaction.options.getString('field_value');
-  const colorInput = interaction.options.getString('color');
+  // 1) Verificación de rol
+  if (!(await requireRole(STAFF_ROLE_ID)(interaction))) return;
 
+  // 2) Obtener opciones
+  const title       = interaction.options.getString('title', true);
+  const description = interaction.options.getString('description', true);
+  const fieldTitle  = interaction.options.getString('field_title');
+  const fieldValue  = interaction.options.getString('field_value');
+  const colorInput  = interaction.options.getString('color');
+
+  // 3) Construir el embed
   const embed = new EmbedBuilder()
     .setTitle(title)
     .setDescription(description)
     .setColor(getEmbedColor(colorInput))
     .setTimestamp();
 
-  // Sólo añade el campo si vienen ambos valores
   if (fieldTitle && fieldValue) {
     embed.addFields({ name: fieldTitle, value: fieldValue });
   }
 
+  // 4) Enviar respuesta
   await interaction.reply({ embeds: [embed] });
 }

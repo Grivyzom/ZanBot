@@ -9,7 +9,7 @@ import {
 import { getEmbedColor } from '../utils/getEmbedColor';
 import { requireRole } from '../utils/requireRole';
 
-const STAFF_ROLE_ID = '123456789012345678'; // <-- Pon aquí el ID real de tu rol
+const STAFF_ROLE_ID = '1371291792988831864'; // <-- Pon aquí el ID real de tu rol
 
 export const data = new SlashCommandBuilder()
   .setName('embed-announcement')
