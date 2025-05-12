@@ -44,6 +44,24 @@ const pool = mysql.createPool({
   } catch (err: any) {
     console.error('❌ Error en migración de la tabla `tickets`:', err);
   }
+
+  // Asegurar que la tabla reports exista
+  const sqlReports = `
+    CREATE TABLE IF NOT EXISTS reports (
+      report_id INT AUTO_INCREMENT PRIMARY KEY,
+      ticket_id INT NOT NULL,
+      reason TEXT NOT NULL,
+      reported_by VARCHAR(20) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (ticket_id) REFERENCES tickets(ticket_id) ON DELETE CASCADE
+    ) CHARACTER SET utf8mb4;
+  `;
+  try {
+    await pool.execute(sqlReports);
+    console.log('✅ Tabla `reports` asegurada en la base de datos');
+  } catch (err: any) {
+    console.error('❌ Error en migración de la tabla `reports`:', err);
+  }
 })();
 
 export default pool;
