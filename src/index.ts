@@ -1,6 +1,6 @@
 // src/index.ts
 import 'dotenv/config';
-import { Client, Collection, GatewayIntentBits, ChatInputCommandInteraction } from 'discord.js';
+import { Client, Collection, GatewayIntentBits, ChatInputCommandInteraction, Partials } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -18,7 +18,12 @@ declare module 'discord.js' {
 
 // Inicializa el cliente de Discord con intents necesarios
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences  // Importante para la información de presencia
+  ],
+  partials: [Partials.User, Partials.GuildMember]
 });
 
 // Carga variables de entorno
@@ -30,26 +35,33 @@ if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
 
 // Inicializa la colección de comandos
 client.commands = new Collection<string, Command>();
-console.log('Comandos cargados:', [...client.commands.keys()]);
+
 // Ruta y lectura de los archivos de comando
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs
   .readdirSync(commandsPath)
   .filter(file => file.endsWith('.ts') || file.endsWith('.js'));
 
+// Cargar los comandos
 for (const file of commandFiles) {
   const filePath = path.join(commandsPath, file);
-  const command: Command = require(filePath);
-  if ('data' in command && 'execute' in command) {
-    client.commands.set(command.data.name, command);
-  } else {
-    console.warn(`⚠️ El archivo ${file} no exporta correctamente 'data' y 'execute'.`);
-  }
+  import(filePath).then(commandModule => {
+    const command = commandModule.default || commandModule;
+    if ('data' in command && 'execute' in command) {
+      client.commands.set(command.data.name, command);
+      console.log(`✅ Comando cargado: ${command.data.name}`);
+    } else {
+      console.warn(`⚠️ El archivo ${file} no exporta correctamente 'data' y 'execute'.`);
+    }
+  }).catch(error => {
+    console.error(`❌ Error al cargar el comando ${file}:`, error);
+  });
 }
 
 // Evento ready
 client.once('ready', () => {
   console.log(`✅ Conectado como ${client.user!.tag}`);
+  console.log('Comandos disponibles:', [...client.commands.keys()]);
 });
 
 // Manejador de interacciones slash
@@ -57,17 +69,28 @@ client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
-  if (!command) return;
+  if (!command) {
+    console.log(`Comando no encontrado: ${interaction.commandName}`);
+    return;
+  }
 
   try {
+    console.log(`Ejecutando comando: ${interaction.commandName}`);
     await command.execute(interaction);
   } catch (error) {
     console.error(`Error ejecutando ${interaction.commandName}:`, error);
-    if (!interaction.replied) {
-      await interaction.reply({ content: '❌ Ocurrió un error al ejecutar el comando.', ephemeral: true });
+    const responseContent = '❌ Ocurrió un error al ejecutar el comando.';
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp({ content: responseContent, ephemeral: true });
+    } else {
+      await interaction.reply({ content: responseContent, ephemeral: true });
     }
   }
 });
 
 // Inicia sesión
-client.login(TOKEN);
+client.login(TOKEN).then(() => {
+  console.log('🔄 Iniciando sesión...');
+}).catch(error => {
+  console.error('❌ Error al iniciar sesión:', error);
+});
