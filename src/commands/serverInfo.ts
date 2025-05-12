@@ -12,7 +12,9 @@ import { getEmbedColor } from '../utils/getEmbedColor';
 export const data = new SlashCommandBuilder()
   .setName('serverinfo')
   .setDescription('Muestra información detallada sobre el servidor')
-  .setDMPermission(false);
+  .setDMPermission(false)
+  // Añadir restricción de permisos - Punto 5: Sin restricción de uso
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   try {
@@ -21,6 +23,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (!guild) {
       return interaction.reply({
         content: '❌ Este comando solo puede ser usado en un servidor.',
+        ephemeral: true
+      });
+    }
+
+    // Verificar permisos del usuario - Punto 5: Sin restricción de uso
+   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+      return interaction.reply({
+        content: '❌ Necesitas el permiso "Gestionar Servidor" para usar este comando.',
         ephemeral: true
       });
     }
@@ -48,46 +58,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       [GuildPremiumTier.Tier3]: 'Nivel 3'
     };
 
-    // Contar canales por tipo
-    const channels = guild.channels.cache;
+    // Contar canales por tipo (Solo públicos) - Punto 1: Enumeración de recursos
+    const channels = guild.channels.cache.filter(channel => channel.isTextBased() && !channel.permissionsFor(guild.roles.everyone)?.has(PermissionFlagsBits.ViewChannel));
     const textChannels = channels.filter(channel => channel.type === ChannelType.GuildText).size;
-    const voiceChannels = channels.filter(channel => channel.type === ChannelType.GuildVoice).size;
-    const categoryChannels = channels.filter(channel => channel.type === ChannelType.GuildCategory).size;
-    const forumChannels = channels.filter(channel => channel.type === ChannelType.GuildForum).size;
-    const threadChannels = channels.filter(channel => 
-      channel.type === ChannelType.PublicThread || 
-      channel.type === ChannelType.PrivateThread || 
-      channel.type === ChannelType.AnnouncementThread
-    ).size;
+    const voiceChannels = guild.channels.cache.filter(channel => channel.type === ChannelType.GuildVoice && !channel.permissionsFor(guild.roles.everyone)?.has(PermissionFlagsBits.ViewChannel)).size;
+    const categoryChannels = guild.channels.cache.filter(channel => channel.type === ChannelType.GuildCategory && !channel.permissionsFor(guild.roles.everyone)?.has(PermissionFlagsBits.ViewChannel)).size;
+    const forumChannels = guild.channels.cache.filter(channel => channel.type === ChannelType.GuildForum && !channel.permissionsFor(guild.roles.everyone)?.has(PermissionFlagsBits.ViewChannel)).size;
     
-    // Obtener estadísticas de miembros
+    // No contar hilos específicos para evitar información sensible - Punto 1: Enumeración de recursos
+    const threadChannels = 'Disponible solo para administradores';
+    
+    // Limitar la información de miembros - Punto 4: Fetch masivo de miembros
     const totalMembers = guild.memberCount;
-    let humans = 0;
-    let bots = 0;
-    let online = 0;
-    let offline = 0;
-
-    try {
-      // Intentar obtener información más detallada de los miembros si es posible
-      const members = await guild.members.fetch({ time: 10000 }).catch(() => null);
-      if (members) {
-        humans = members.filter(member => !member.user.bot).size;
-        bots = members.filter(member => member.user.bot).size;
-        
-        // Solo contar presencias si tenemos el intento GUILD_PRESENCES
-        const presences = members.filter(member => member.presence).size;
-        if (presences > 0) {
-          online = members.filter(member => member.presence?.status !== 'offline').size;
-          offline = members.filter(member => !member.presence || member.presence.status === 'offline').size;
-        }
-      }
-    } catch (error) {
-      console.error('Error al obtener miembros detallados:', error);
-      // Usamos valores aproximados si no podemos obtener la información detallada
-      humans = Math.round(totalMembers * 0.9); // Asumimos que ~90% son humanos
-      bots = totalMembers - humans;
-    }
-
+    // No calculamos humanos/bots específicos para evitar el fetch masivo
+    
     // Permisos del bot
     const botMember = guild.members.me;
     const missingPermissions = [];
@@ -120,7 +104,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const stickers = guild.stickers.cache.size;
     const maxStickers = getMaxStickers(guild.premiumTier);
 
-    // Roles (excluir @everyone)
+    // Roles (excluir @everyone) - Punto 1: Enumeración de recursos
+    // Solo indicamos el número total, no listamos los roles
     const roles = guild.roles.cache.size - 1;
     
     // Crear el embed
@@ -134,7 +119,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           value: [
             `📝 **Nombre:** ${guild.name}`,
             `🆔 **ID:** ${guild.id}`,
-            `👑 **Propietario:** <@${guild.ownerId}>`,
+            // Punto 2: Owner ID visible - Ocultamos el dueño o lo hacemos opcional
+            interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ? `👑 **Propietario:** <@${guild.ownerId}>` : '👑 **Propietario:** Visible solo para administradores',
             `📅 **Creado:** <t:${createdAt}:F> (<t:${createdAt}:R>)`,
             `🔐 **Nivel de Verificación:** ${verificationLevels[guild.verificationLevel]}`,
             `💎 **Nivel de Impulso:** ${boostLevel[guild.premiumTier]} (${guild.premiumSubscriptionCount || 0} impulsos)`,
@@ -146,10 +132,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
           name: '👥 Miembros',
           value: [
             `👤 **Total:** ${totalMembers.toLocaleString()} miembros`,
-            `🧑 **Humanos:** ${humans.toLocaleString()}`,
-            `🤖 **Bots:** ${bots.toLocaleString()}`,
-            online > 0 ? `🟢 **En línea:** ${online.toLocaleString()}` : '',
-            offline > 0 ? `⚫ **Desconectados:** ${offline.toLocaleString()}` : ''
+            // No hacemos fetch masivo - Punto 4
+            `🧑 **Humanos/Bots:** Información detallada solo para administradores`,
           ].filter(Boolean).join('\n'),
           inline: true
         },
@@ -160,7 +144,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
             `🔊 **Canales de Voz:** ${voiceChannels}`,
             `📚 **Categorías:** ${categoryChannels}`,
             forumChannels > 0 ? `📝 **Foros:** ${forumChannels}` : '',
-            threadChannels > 0 ? `🧵 **Hilos:** ${threadChannels}` : '',
+            `🧵 **Hilos:** ${threadChannels}`,
             `👑 **Roles:** ${roles}`,
             `😀 **Emojis:** ${totalEmojis}/${maxEmojis}`,
             stickers > 0 ? `🏷️ **Stickers:** ${stickers}/${maxStickers}` : ''
@@ -222,7 +206,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     }
 
     // Añadir información sobre permisos faltantes si es relevante
-    if (missingPermissions.length > 0) {
+    // Punto 3: Listado de permisos faltantes
+    if (missingPermissions.length > 0 && interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
       embed.addFields({
         name: '⚠️ Permisos faltantes',
         value: `El bot no tiene los siguientes permisos: ${missingPermissions.join(', ')}`,
@@ -241,7 +226,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       iconURL: interaction.user.displayAvatarURL()
     });
 
-    return interaction.reply({ embeds: [embed] });
+    // Punto 6: Respuesta pública - Hacemos que la respuesta sea efímera
+    return interaction.reply({ embeds: [embed], ephemeral: true });
   } catch (error) {
     console.error('Error en el comando serverinfo:', error);
     return interaction.reply({ content: '❌ Ocurrió un error al obtener la información del servidor.', ephemeral: true });
