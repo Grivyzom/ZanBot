@@ -3,7 +3,7 @@ import mysql from 'mysql2/promise';
 
 dotenv.config();
 
-// Configuración y creación del pool de conexión
+// Configuración y creación del pool de conexión con límites optimizados
 const pool = mysql.createPool({
   host: process.env.DB_HOST!,
   user: process.env.DB_USER!,
@@ -11,8 +11,8 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME!,
   port: Number(process.env.DB_PORT!),
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
+  connectionLimit: 100, // Aumentado para manejar mayor carga de 10 a 100
+  queueLimit: 50, // Habilitado para manejar picos de conexiones de 0 a 50
 });
 
 // Crear la base de datos si no existe y seleccionarla
