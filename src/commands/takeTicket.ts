@@ -1,6 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, ChannelType, GuildMember } from 'discord.js';
 import pool from '../database';
-////import { requireRole } from '../utils/requireRole';
 
 export const data = new SlashCommandBuilder()
   .setName('tomar-ticket')
