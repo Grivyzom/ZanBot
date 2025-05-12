@@ -1,6 +1,6 @@
 // src/commands/embedImage.ts
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder,  PermissionFlagsBits } from 'discord.js';
 import { getEmbedColor } from '../utils/getEmbedColor';
 import { requireRole } from '../utils/requireRole';
 
@@ -9,6 +9,9 @@ const STAFF_ROLE_ID = '1371291792988831864'; // <-- Pon aquí el ID real de tu r
 export const data = new SlashCommandBuilder()
   .setName('embed-image')
   .setDescription('Crea un embed con una imagen')
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+  // ← no disponible en DM
+  .setDMPermission(false)
   // 1. Requeridas
   .addStringOption(option =>
     option

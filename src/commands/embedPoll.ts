@@ -9,7 +9,8 @@ import {
   EmbedBuilder,
   Message,
   ComponentType,
-  ButtonInteraction
+  ButtonInteraction,
+  PermissionFlagsBits
 } from 'discord.js';
 import { getEmbedColor } from '../utils/getEmbedColor';
 import { setTimeout } from 'node:timers/promises';
@@ -28,6 +29,9 @@ interface PollResults {
 export const data = new SlashCommandBuilder()
   .setName('embed-poll')
   .setDescription('Crea una encuesta atractiva y fácil de votar para tu servidor')
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+  // ← no disponible en DM
+  .setDMPermission(false)
   .addStringOption(option =>
     option
       .setName('question')

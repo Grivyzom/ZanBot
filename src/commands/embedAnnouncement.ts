@@ -4,7 +4,8 @@ import {
   ChatInputCommandInteraction,
   EmbedBuilder,
   Role,
-  InteractionReplyOptions
+  InteractionReplyOptions,
+  PermissionFlagsBits  // ← Asegúrate de importarlo
 } from 'discord.js';
 import { getEmbedColor } from '../utils/getEmbedColor';
 import { requireRole } from '../utils/requireRole';
@@ -14,6 +15,10 @@ const STAFF_ROLE_ID = '1371291792988831864'; // <-- Pon aquí el ID real de tu r
 export const data = new SlashCommandBuilder()
   .setName('embed-announcement')
   .setDescription('Crea un embed de anuncio con formato prefijado')
+  // ← Solo visible/ejecutable para quien pueda MANAGE_MESSAGES
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+  // ← no disponible en DM
+  .setDMPermission(false)
   .addStringOption(option =>
     option
       .setName('title')
@@ -52,8 +57,6 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  // 1) Verificamos rol
-  if (!(await requireRole(STAFF_ROLE_ID)(interaction))) return;
 
   // 2) Obtenemos opciones
   const title       = interaction.options.getString('title', true);
