@@ -58,6 +58,22 @@ for (const file of commandFiles) {
   });
 }
 
+// Cargar eventos
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(f => f.endsWith('.ts') || f.endsWith('.js'));
+
+for (const file of eventFiles) {
+  import(path.join(eventsPath, file)).then(mod => {
+    const event = mod.default;
+    if (event && event.name && event.execute) {
+      client.on(event.name, (...args) => event.execute(...args));
+      console.log(`✅ Evento cargado: ${event.name}`);
+    }
+  }).catch(error => {
+    console.error(`❌ Error al cargar el evento ${file}:`, error);
+  });
+}
+
 // Evento ready
 client.once('ready', () => {
   console.log(`✅ Conectado como ${client.user!.tag}`);
