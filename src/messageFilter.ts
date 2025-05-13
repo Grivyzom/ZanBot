@@ -11,6 +11,7 @@ import {
   ButtonStyle,
   ChannelType
 } from 'discord.js';
+import { getMute } from './database';
 
 // ID del canal de logs (definido en .env)
 const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID as string;
@@ -42,6 +43,17 @@ export function registerMessageFilter(client: Client) {
   // Filtro de mensajes
   client.on('messageCreate', async (message: Message) => {
     if (message.author.bot || !message.guild) return;
+
+    // Bloquear y eliminar mensajes de usuarios muteados
+    const muted = await getMute(message.guild.id, message.author.id);
+    if (muted) {
+      try {
+        await message.delete();
+      } catch (error) {
+        console.error('Error al eliminar mensaje muteado:', error);
+      }
+      return;
+    }
 
     const content = message.content;
     const foundIPs = content.match(ipRegex) || [];
@@ -81,14 +93,12 @@ export function registerMessageFilter(client: Client) {
   });
 }
 
-// Enviar log con fetch y manejo de canales privados
 async function sendLogMessage(client: Client, guildId: string, userId: string) {
   try {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return;
     const fetched = await guild.channels.fetch(LOG_CHANNEL_ID);
     if (!fetched) return;
-    // Aceptar varios tipos de canal de texto
     if (
       (fetched.type === ChannelType.GuildText || fetched.type === ChannelType.GuildNews || fetched.type === ChannelType.GuildPublicThread || fetched.type === ChannelType.GuildPrivateThread) &&
       'send' in fetched
