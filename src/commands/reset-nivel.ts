@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, CommandInteraction, PermissionFlagsBits } from 'discord.js';
 import { addXP } from '../utils/levelSystem';
+import { ChatInputCommandInteraction } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
   .setName('dar-experiencia')
@@ -8,7 +9,7 @@ export const data = new SlashCommandBuilder()
   .addIntegerOption(option => option.setName('cantidad').setDescription('XP a otorgar').setRequired(true))
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
 
-export async function execute(interaction: CommandInteraction) {
+export async function execute(interaction: ChatInputCommandInteraction) {
   const user = interaction.options.getUser('usuario', true);
   const cantidad = interaction.options.getInteger('cantidad', true);
   const guildId = interaction.guildId!;
