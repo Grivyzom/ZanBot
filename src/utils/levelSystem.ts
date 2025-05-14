@@ -22,8 +22,22 @@ if (!fs.existsSync(ASSETS_DIR)) {
 try {
   registerFont(path.join(ASSETS_DIR, 'Roboto-Bold.ttf'), { family: 'Roboto-Bold' });
   registerFont(path.join(ASSETS_DIR, 'Roboto-Regular.ttf'), { family: 'Roboto-Regular' });
+  registerFont(path.join(__dirname, '../assets/fonts/Roboto-Bold.ttf'), { family: 'Roboto' });
 } catch (error) {
   console.warn('⚠️ No se pudieron cargar las fuentes personalizadas, usando fuentes predeterminadas');
+}
+
+/**
+ * Formatea números grandes de manera legible
+ * Por ejemplo: 1500 -> 1.5K, 1500000 -> 1.5M
+ */
+function formatNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
 }
 
 /**
@@ -225,15 +239,54 @@ export async function generateLevelCard(
   const canvas = createCanvas(800, 300);
   const ctx = canvas.getContext('2d');
   
-  // Fondo con degradado
+  // Fondo con degradado más atractivo
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-  gradient.addColorStop(0, '#1a1a2e');
-  gradient.addColorStop(1, '#16213e');
+  
+  // Seleccionar colores basados en el nivel
+  if (levelData.level >= 300) {
+    // Tema legendario (púrpura y dorado)
+    gradient.addColorStop(0, '#1a0033');
+    gradient.addColorStop(1, '#4d0099');
+  } else if (levelData.level >= 200) {
+    // Tema épico (azul oscuro y morado)
+    gradient.addColorStop(0, '#000033');
+    gradient.addColorStop(1, '#330066');
+  } else if (levelData.level >= 100) {
+    // Tema dorado (azul marino y dorado)
+    gradient.addColorStop(0, '#002B36');
+    gradient.addColorStop(1, '#073642');
+  } else if (levelData.level >= 50) {
+    // Tema avanzado (azul oscuro)
+    gradient.addColorStop(0, '#0A192F');
+    gradient.addColorStop(1, '#172A45');
+  } else {
+    // Tema inicial (gris oscuro y azul)
+    gradient.addColorStop(0, '#1E1E2C');
+    gradient.addColorStop(1, '#2D3748');
+  }
+  
+  // Aplicar gradiente de fondo
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Borde redondeado
-  ctx.strokeStyle = '#30475e';
+  // Efecto de brillo/glow para niveles altos
+  if (levelData.level >= 300) {
+    // Añadir un sutil brillo dorado en los bordes
+    const glowGradient = ctx.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, 50,
+      canvas.width / 2, canvas.height / 2, 400
+    );
+    glowGradient.addColorStop(0, 'rgba(255, 215, 0, 0)');
+    glowGradient.addColorStop(1, 'rgba(255, 215, 0, 0.15)');
+    ctx.fillStyle = glowGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  
+  // Borde redondeado con efecto de brillo
+  ctx.strokeStyle = levelData.level >= 300 ? '#ffd700' : 
+                    levelData.level >= 200 ? '#9370db' : 
+                    levelData.level >= 100 ? '#c0c0c0' : 
+                    levelData.level >= 50 ? '#4682b4' : '#607d8b';
   ctx.lineWidth = 5;
   ctx.beginPath();
   ctx.roundRect(10, 10, canvas.width - 20, canvas.height - 20, 20);
@@ -254,13 +307,32 @@ export async function generateLevelCard(
     ctx.drawImage(avatar, 40, 40, 160, 160);
     ctx.restore();
     
-    // Añadir un borde al avatar
-    ctx.strokeStyle = levelData.level >= 100 ? '#ffd700' : levelData.level >= 50 ? '#c0c0c0' : '#cd7f32';
+    // Añadir un borde al avatar con color basado en nivel
+    let borderColor;
+    if (levelData.level >= 300) borderColor = '#ffd700'; // Dorado para legendario
+    else if (levelData.level >= 200) borderColor = '#9370db'; // Púrpura para épico
+    else if (levelData.level >= 100) borderColor = '#c0c0c0'; // Plata para avanzado
+    else if (levelData.level >= 50) borderColor = '#4682b4'; // Azul para intermedio
+    else borderColor = '#cd7f32'; // Bronce para principiante
+    
+    ctx.strokeStyle = borderColor;
     ctx.lineWidth = 8;
     ctx.beginPath();
     ctx.arc(120, 120, 80, 0, Math.PI * 2);
     ctx.closePath();
     ctx.stroke();
+    
+    // Añadir un efecto de brillo para niveles altos
+    if (levelData.level >= 100) {
+      ctx.strokeStyle = levelData.level >= 300 ? 'rgba(255, 215, 0, 0.5)' : 
+                        levelData.level >= 200 ? 'rgba(147, 112, 219, 0.5)' : 
+                        'rgba(192, 192, 192, 0.5)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(120, 120, 90, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.stroke();
+    }
   } catch (error) {
     console.error('Error al cargar avatar:', error);
     // Dibujar placeholder si falla
@@ -268,60 +340,88 @@ export async function generateLevelCard(
     ctx.fillRect(40, 40, 160, 160);
   }
   
-  // Información del usuario
+  // Información del usuario con mejor estilo
   ctx.fillStyle = '#ffffff';
-  ctx.font = '28px "Roboto-Bold", sans-serif';
+  ctx.font = 'bold 32px "Roboto-Bold", sans-serif';
+  ctx.textAlign = 'left';
   ctx.fillText(member.user.username, 240, 80);
   
-  // Nivel y Rank
+  // Nivel y Rank con iconos
   ctx.fillStyle = '#f5f5f5';
-  ctx.font = '22px "Roboto-Regular", sans-serif';
-  ctx.fillText(`Nivel: ${levelData.level}`, 240, 120);
-  ctx.fillText(`Rank: #${levelData.rank || '?'}`, 400, 120);
+  ctx.font = 'bold 24px "Roboto-Bold", sans-serif';
   
-  // XP actual y necesario
-  ctx.fillText(`XP: ${levelData.xp} / ${levelData.xpForNextLevel}`, 240, 160);
-  ctx.fillText(`Total XP: ${levelData.totalXp}`, 500, 160);
+  // Iconos para nivel y rank
+  ctx.fillText(`⚡ Nivel: ${levelData.level}`, 240, 120);
+  ctx.fillText(`🏆 Rank: #${levelData.rank || '?'}`, 450, 120);
+  
+  // XP actual y necesario con formato para números grandes
+  ctx.font = '22px "Roboto-Regular", sans-serif';
+  ctx.fillText(`✨ XP: ${formatNumber(levelData.xp)} / ${formatNumber(levelData.xpForNextLevel)}`, 240, 160);
+  ctx.fillText(`📊 Total: ${formatNumber(levelData.totalXp)} XP`, 500, 160);
   
   // Barra de progreso (fondo)
-  ctx.fillStyle = '#3a3a3a';
+  ctx.fillStyle = 'rgba(40, 40, 40, 0.6)';
   ctx.beginPath();
-  ctx.roundRect(240, 190, 500, 30, 15);
+  ctx.roundRect(240, 190, 500, 25, 12.5);
   ctx.fill();
   
   // Barra de progreso (relleno)
   const progressWidth = Math.max(10, (levelData.progress / 100) * 500);
   
-  // Color basado en el nivel
-  let progressColor;
-  if (levelData.level >= 300) progressColor = '#ff2281';      // Rosa intenso
-  else if (levelData.level >= 200) progressColor = '#9900ff'; // Púrpura
-  else if (levelData.level >= 100) progressColor = '#ffd700'; // Dorado
-  else if (levelData.level >= 50) progressColor = '#1e88e5';  // Azul
-  else progressColor = '#43a047';                             // Verde
+  // Colores de nivel para la barra de progreso
+  let progressGradient = ctx.createLinearGradient(240, 0, 240 + progressWidth, 0);
   
-  ctx.fillStyle = progressColor;
+  if (levelData.level >= 300) {
+    // Púrpura legendario a dorado
+    progressGradient.addColorStop(0, '#9900ff');
+    progressGradient.addColorStop(1, '#ffd700');
+  } else if (levelData.level >= 200) {
+    // Púrpura intenso
+    progressGradient.addColorStop(0, '#9900ff');
+    progressGradient.addColorStop(1, '#cc00ff');
+  } else if (levelData.level >= 100) {
+    // Dorado
+    progressGradient.addColorStop(0, '#ffd700');
+    progressGradient.addColorStop(1, '#ffcc00');
+  } else if (levelData.level >= 50) {
+    // Azul
+    progressGradient.addColorStop(0, '#1e88e5');
+    progressGradient.addColorStop(1, '#64b5f6');
+  } else {
+    // Verde
+    progressGradient.addColorStop(0, '#43a047');
+    progressGradient.addColorStop(1, '#66bb6a');
+  }
+  
+  ctx.fillStyle = progressGradient;
   ctx.beginPath();
-  ctx.roundRect(240, 190, progressWidth, 30, 15);
+  ctx.roundRect(240, 190, progressWidth, 25, 12.5);
   ctx.fill();
   
   // Porcentaje de progreso
   ctx.fillStyle = '#ffffff';
-  ctx.font = '18px "Roboto-Bold", sans-serif';
+  ctx.font = 'bold 16px "Roboto-Bold", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`${levelData.progress}%`, 240 + 250, 212);
+  ctx.fillText(`${levelData.progress}%`, 240 + 250, 208);
   
-  // Mensaje motivacional
+  // Mensaje motivacional con mejor estilo
   let message = '';
-  if (levelData.level >= 350) message = '¡Leyenda absoluta!';
-  else if (levelData.level >= 300) message = '¡Increíble dedicación!';
-  else if (levelData.level >= 200) message = '¡Maestría impresionante!';
-  else if (levelData.level >= 100) message = '¡Gran progreso!';
-  else if (levelData.level >= 50) message = '¡Buen trabajo!';
-  else if (levelData.level >= 25) message = '¡Sigue así!';
-  else message = '¡Apenas empiezas!';
+  if (levelData.level >= 350) message = '✨ ¡LEYENDA ABSOLUTA! ✨';
+  else if (levelData.level >= 300) message = '🌟 ¡Increíble dedicación! 🌟';
+  else if (levelData.level >= 200) message = '💫 ¡Maestría impresionante! 💫';
+  else if (levelData.level >= 100) message = '🔥 ¡Gran progreso! 🔥';
+  else if (levelData.level >= 50) message = '👏 ¡Buen trabajo! 👏';
+  else if (levelData.level >= 25) message = '👍 ¡Sigue así! 👍';
+  else message = '🚀 ¡Apenas empiezas! 🚀';
   
+  ctx.font = 'bold 20px "Roboto-Bold", sans-serif';
   ctx.fillText(message, 490, 250);
+  
+  // Añadir marca de tiempo sutil
+  ctx.font = '14px "Roboto-Regular", sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.fillText(`Generado: ${new Date().toLocaleDateString()}`, canvas.width - 20, canvas.height - 15);
   
   // Convertir el canvas a una imagen
   const buffer = canvas.toBuffer('image/png');

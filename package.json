@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "canvas": "^3.1.0",
+    "color": "^5.0.0",
+    "ctx": "^0.3.0",
     "discord.js": "^14.19.3",
     "dotenv": "^16.5.0",
     "express": "^4.18.2",

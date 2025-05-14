@@ -62,6 +62,23 @@ const pool = mysql.createPool({
     console.error('❌ Error en migración de la tabla `user_xp`:', err);
   }
 
+  const sqlXpHistory = `
+    CREATE TABLE IF NOT EXISTS user_xp_history (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      user_id  VARCHAR(20) NOT NULL,
+      guild_id VARCHAR(20) NOT NULL,
+      xp_earned INT NOT NULL,
+      source VARCHAR(32) NOT NULL,
+      earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_user (user_id, guild_id)
+    ) CHARACTER SET utf8mb4;
+  `;
+  try {
+    await pool.execute(sqlXpHistory);
+    console.log('✅ Tabla `user_xp_history` asegurada');
+  } catch (err) {
+    console.error('❌ Error en migración de `user_xp_history`:', err);
+  }
 
   // Asegurar que la tabla reports exista
   const sqlReports = `

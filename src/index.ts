@@ -12,7 +12,7 @@ import {
 import fs from 'fs';
 import path from 'path';
 import { getEmbedColor } from './utils/getEmbedColor';
-
+import ActivityTracker from './utils/activityRewards';   // ← añade esto
 type Command = {
   data: { name: string; toJSON(): any };
   execute: (interaction: ChatInputCommandInteraction) => Promise<any>;
@@ -25,14 +25,21 @@ declare module 'discord.js' {
   }
 }
 
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildPresences
+    GatewayIntentBits.GuildMessages,     // ← necesarios
+    GatewayIntentBits.MessageContent,    // ←
+    GatewayIntentBits.GuildVoiceStates   // ← si quieres XP por voz
   ],
   partials: [Partials.User, Partials.GuildMember]
 });
+
+const tracker = new ActivityTracker(client);
+client.on('messageCreate',  msg                    => tracker.processMessage(msg));
+client.on('voiceStateUpdate', (oldS, newS)        => tracker.processVoiceState(oldS, newS));
 
 const { TOKEN, CLIENT_ID, GUILD_ID } = process.env;
 if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
