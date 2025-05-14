@@ -45,6 +45,24 @@ const pool = mysql.createPool({
     console.error('❌ Error en migración de la tabla `tickets`:', err);
   }
 
+  const sqlXP = `
+  CREATE TABLE IF NOT EXISTS user_xp (
+    user_id VARCHAR(20) NOT NULL,
+    guild_id VARCHAR(20) NOT NULL,
+    xp INT DEFAULT 0,
+    level INT DEFAULT 1,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, guild_id)
+  ) CHARACTER SET utf8mb4;
+  `;
+  try {
+    await pool.execute(sqlXP);
+    console.log('✅ Tabla `user_xp` asegurada en la base de datos');
+  } catch (err) {
+    console.error('❌ Error en migración de la tabla `user_xp`:', err);
+  }
+
+
   // Asegurar que la tabla reports exista
   const sqlReports = `
     CREATE TABLE IF NOT EXISTS reports (

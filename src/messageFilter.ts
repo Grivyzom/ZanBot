@@ -12,6 +12,7 @@ import {
   ChannelType
 } from 'discord.js';
 import { getMute } from './database';
+import { addXP } from './utils/levelSystem';
 
 // ID del canal de logs (definido en .env)
 const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID as string;
@@ -70,7 +71,8 @@ export function registerMessageFilter(client: Client) {
       data.timestamps.push(now);
       data.count = data.timestamps.length;
       userWarningCounts.set(key, data);
-
+      await addXP(message.author.id, message.guild.id);
+      
       // IP detectada: baneo inmediato + log
       if (ips.length > 0) {
         await message.guild.members.ban(message.author.id, { reason: 'Envío de IP prohibida' }).catch(console.error);

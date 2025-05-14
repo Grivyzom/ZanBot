@@ -9,28 +9,29 @@ export default {
   async execute(interaction: ChatInputCommandInteraction) {
     const embed = new EmbedBuilder()
       .setTitle('¡Cómo unirse en Java! (Computadora)')
-      .setDescription('¡Unirse a SpookMC en Java es súper fácil!')
+      .setDescription('¡Unirse a Grivyzom en Java es súper fácil!')
       .setColor(getEmbedColor()) // color dinámico :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
       .addFields(
         {
           name: 'Los pasos',
           value:
-            '1. Abre tu Minecraft en cualquier versión superior a 1.8\n' +
+            '1. Abre tu Minecraft en cualquier versión superior a 1.20.1\n' +
             '2. Pulsa "Multijugador"\n' +
             '3. Presiona "Agregar servidor"\n' +
-            '4. Completa la "Dirección del servidor" con: `spookmc.net`\n' +
+            '4. Completa la "Dirección del servidor" con: `play.grivyzom.com`\n' +
             '5. ¡Presiona y únete al servidor!',
         },
         {
           name: 'Información del servidor',
           value:
-            '• Dirección del servidor (IP): `spookmc.net`\n' +
-            '• Nombre del servidor: SpookMC\n' +
-            '• Versión recomendada: 1.19+',
+            '• Dirección del servidor (IP): `play.grivyzom.com``\n' +
+            '• Nombre del servidor: Grivyzom\n' +
+            '• Versión recomendada: 1.21.+',
         }
       )
-      .setFooter({ text: '¿Quieres unirte en Bedrock? Ve a #bedrock' })
-      .setImage('https://ruta/a/tu/imagen-java.png'); // ajusta la URL de la imagen
-    await interaction.reply({ embeds: [embed] });
+      .setFooter({ text: '¿Quieres unirte en Bedrock? Ve a <#1371879333651677244>' })
+      .setImage('https://grivyzom.com/bedrock.png');
+
+      await interaction.reply({ embeds: [embed] });
   },
 };
