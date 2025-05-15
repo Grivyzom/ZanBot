@@ -18,6 +18,7 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    await interaction.deferReply(); // registra la respuesta (pública)
     // Verificar que el usuario tenga el rol Member o superior
     // Verificar rol por ID desde .env
     if (!interaction.guild) {
@@ -64,6 +65,7 @@ export default {
             ? '❌ No tienes redes sociales registradas. Usa `/añadir-redes` para añadirlas.'
             : `❌ ${targetUser.username} no tiene redes sociales registradas.`
         );
+        return; // ← evita doble respuesta
       }
       
       // Crear canvas para la imagen
