@@ -1,7 +1,7 @@
 // src/commands/añadir-redes.ts
-import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember } from 'discord.js';
+import { SlashCommandBuilder,ChatInputCommandInteraction,} from 'discord.js';
+import { prohibitRole } from '../utils/prohibitRole';
 import { setSocialNetworks } from '../database';
-import 'dotenv/config';
 
 export default {
   data: new SlashCommandBuilder()
@@ -39,22 +39,7 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    // Verificar rol por ID desde .env
-    if (!interaction.guild) {
-      await interaction.reply({ content: 'Este comando solo puede usarse en un servidor.', ephemeral: true });
-      return;
-    }
-    const guildMember = await interaction.guild.members.fetch(interaction.user.id);
-    // Carga y limpia IDs de roles permitidos desde .env
-    const allowedRolesEnv = process.env.ALLOWED_ROLES_REDES_COMMAND || '';
-    const allowed = allowedRolesEnv
-      ? allowedRolesEnv.replace(/["']/g, '').split(',').map(id => id.trim())
-      : [];
-     const hasAccess = guildMember.roles.cache.some(r => allowed.includes(r.id));
-     if (!hasAccess) {
-       await interaction.reply({ content: 'No tienes permisos suficientes para usar este comando.', ephemeral: true });
-       return;
-     }
+    if (!(await prohibitRole(process.env.ROLE_NUEVO!)(interaction))) return;
     try {
       const userId = interaction.user.id;
       if (!interaction.guild) {
@@ -64,9 +49,9 @@ export default {
             });
             return;
       }
-
-      // aquí interaction.guild ya no es null
-      const guildId = interaction.guild.id;  
+            // aquí interaction.guild ya no es null
+      const guildId = interaction.guild.id;
+                  
       // Obtener valores de los options
       const instagram = interaction.options.getString('instagram');
       const twitter = interaction.options.getString('twitter');

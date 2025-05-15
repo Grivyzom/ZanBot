@@ -1,6 +1,6 @@
 // src/commands/redes.ts
-import { SlashCommandBuilder, AttachmentBuilder, ChatInputCommandInteraction } from 'discord.js';
-import 'dotenv/config';
+import { SlashCommandBuilder,AttachmentBuilder,ChatInputCommandInteraction,} from 'discord.js';
+import { prohibitRole } from '../utils/prohibitRole';
 import { getSocialNetworks } from '../database';
 import { createCanvas, loadImage, registerFont } from 'canvas';
 import path from 'path';
@@ -18,19 +18,17 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    await interaction.deferReply(); // registra la respuesta (pública)
-    // Verificar que el usuario tenga el rol Member o superior
-    // Verificar rol por ID desde .env
-    if (!interaction.guild) {
-      await interaction.reply({ content: 'Este comando solo puede usarse en un servidor.', ephemeral: true });
+
+    // 1️⃣  Bloqueo rol “Nuevo”
+    if (!(await prohibitRole(process.env.ROLE_NUEVO!)(interaction))) return;
+
+    // 2️⃣  Lógica original del comando
+
+    await interaction.deferReply(); // Diferir la respuesta porque la creación del canvas puede tomar tiempo
+      if (!interaction.guild) {
+      await interaction.followUp({ content: 'Este comando sólo funciona en servidores.', ephemeral: true });
       return;
-    }
-    const guildMember = await interaction.guild.members.fetch(interaction.user.id);
-    // Carga y limpia IDs de roles permitidos desde .env
-    const allowedRolesEnv = process.env.ALLOWED_ROLES_REDES_COMMAND || '';
-    const allowed = allowedRolesEnv
-      ? allowedRolesEnv.replace(/["']/g, '').split(',').map(id => id.trim())
-      : [];
+      }
     try {
       // Determinar de qué usuario se mostrarán las redes
       const targetUser = interaction.options.getUser('usuario') || interaction.user;
@@ -65,7 +63,6 @@ export default {
             ? '❌ No tienes redes sociales registradas. Usa `/añadir-redes` para añadirlas.'
             : `❌ ${targetUser.username} no tiene redes sociales registradas.`
         );
-        return; // ← evita doble respuesta
       }
       
       // Crear canvas para la imagen
