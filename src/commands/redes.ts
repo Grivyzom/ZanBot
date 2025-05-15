@@ -1,5 +1,5 @@
 // src/commands/redes.ts
-import { SlashCommandBuilder, AttachmentBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, AttachmentBuilder, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import { getSocialNetworks } from '../database';
 import { createCanvas, loadImage, registerFont } from 'canvas';
 import path from 'path';
@@ -17,6 +17,18 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+
+// Sólo Member (o superior) puede usar este comando
+    const member = interaction.member;
+    if (!(member instanceof GuildMember)) {
+      await interaction.reply({ content: 'Este comando solo puede usarse en un servidor.', ephemeral: true });
+      return;
+    }
+    const minRole = interaction.guild?.roles.cache.find(r => r.name.toLowerCase() === 'member');
+    if (minRole && member.roles.highest.position < minRole.position) {
+      await interaction.reply({ content: 'No tienes permisos suficientes para usar este comando.', ephemeral: true });
+      return;
+    }
     await interaction.deferReply(); // Diferir la respuesta porque la creación del canvas puede tomar tiempo
       if (!interaction.guild) {
       await interaction.followUp({ content: 'Este comando sólo funciona en servidores.', ephemeral: true });

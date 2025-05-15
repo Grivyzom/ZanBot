@@ -1,5 +1,5 @@
 // src/commands/añadir-redes.ts
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import { setSocialNetworks } from '../database';
 
 export default {
@@ -38,6 +38,17 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    // Sólo Member (o superior) puede usar este comando
+    const member = interaction.member;
+    if (!(member instanceof GuildMember)) {
+      await interaction.reply({ content: 'Este comando solo puede usarse en un servidor.', ephemeral: true });
+      return;
+    }
+    const minRole = interaction.guild?.roles.cache.find(r => r.name.toLowerCase() === 'member');
+    if (minRole && member.roles.highest.position < minRole.position) {
+      await interaction.reply({ content: 'No tienes permisos suficientes para usar este comando.', ephemeral: true });
+      return;
+    }
     try {
       const userId = interaction.user.id;
       if (!interaction.guild) {
