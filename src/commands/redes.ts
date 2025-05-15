@@ -25,17 +25,11 @@ export default {
       return;
     }
     const guildMember = await interaction.guild.members.fetch(interaction.user.id);
-    const allowed = process.env.ALLOWED_ROLES?.split(',') || [];
-    const hasAccess = guildMember.roles.cache.some(r => allowed.includes(r.id));
-    if (!hasAccess) {
-      await interaction.reply({ content: 'No tienes permisos suficientes para usar este comando.', ephemeral: true });
-      return;
-    }
-    await interaction.deferReply(); // Diferir la respuesta porque la creación del canvas puede tomar tiempo
-      if (!interaction.guild) {
-      await interaction.followUp({ content: 'Este comando sólo funciona en servidores.', ephemeral: true });
-      return;
-      }
+    // Carga y limpia IDs de roles permitidos desde .env
+    const allowedRolesEnv = process.env.ALLOWED_ROLES_REDES_COMMAND || '';
+    const allowed = allowedRolesEnv
+      ? allowedRolesEnv.replace(/["']/g, '').split(',').map(id => id.trim())
+      : [];
     try {
       // Determinar de qué usuario se mostrarán las redes
       const targetUser = interaction.options.getUser('usuario') || interaction.user;

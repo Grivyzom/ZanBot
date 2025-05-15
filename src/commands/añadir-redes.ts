@@ -45,12 +45,16 @@ export default {
       return;
     }
     const guildMember = await interaction.guild.members.fetch(interaction.user.id);
-    const allowed = process.env.ALLOWED_ROLES?.split(',') || [];
-    const hasAccess = guildMember.roles.cache.some(r => allowed.includes(r.id));
-    if (!hasAccess) {
-      await interaction.reply({ content: 'No tienes permisos suficientes para usar este comando.', ephemeral: true });
-      return;
-    }
+    // Carga y limpia IDs de roles permitidos desde .env
+    const allowedRolesEnv = process.env.ALLOWED_ROLES_REDES_COMMAND || '';
+    const allowed = allowedRolesEnv
+      ? allowedRolesEnv.replace(/["']/g, '').split(',').map(id => id.trim())
+      : [];
+     const hasAccess = guildMember.roles.cache.some(r => allowed.includes(r.id));
+     if (!hasAccess) {
+       await interaction.reply({ content: 'No tienes permisos suficientes para usar este comando.', ephemeral: true });
+       return;
+     }
     try {
       const userId = interaction.user.id;
       if (!interaction.guild) {
