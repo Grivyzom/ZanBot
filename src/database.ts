@@ -15,6 +15,7 @@ const pool = mysql.createPool({
   queueLimit: 50, // Habilitado para manejar picos de conexiones de 0 a 50
 });
 
+
 // Crear la base de datos si no existe y seleccionarla
 (async () => {
   const dbName = process.env.DB_NAME!;
