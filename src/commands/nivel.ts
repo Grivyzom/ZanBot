@@ -43,7 +43,7 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply(); // Usar defer para tener tiempo para generar la tarjeta
+  await interaction.deferReply({ ephemeral: true }); // Usar defer para tener tiempo para generar la tarjeta
   
   const targetUser = interaction.options.getUser('usuario') || interaction.user;
   const viewType = interaction.options.getString('vista') || 'card';
@@ -63,18 +63,36 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   }
   
   switch (viewType) {
-    case 'card':
-      // Generar la tarjeta de nivel visual
+    case 'card': {
+      // Generar la tarjeta
       const levelCard = await generateLevelCard(member, stats);
-      
-      await interaction.editReply({ files: [levelCard] });
-      if (LEVEL_CHANNEL_ID) {
-        const levelCh = await interaction.client.channels.fetch(LEVEL_CHANNEL_ID) as TextChannel;
-        if (levelCh && levelCh.isTextBased()) {
-          await levelCh.send({ files: [levelCard] });
-        }
+
+      // 2. Buscar el canal de niveles por ID del .env
+      if (!LEVEL_CHANNEL_ID) {
+        return await interaction.editReply(
+          '❌ No se ha configurado LEVEL_CHANNEL_ID en el archivo .env.'
+        );
       }
-       break;
+
+      const levelCh = await interaction.client.channels
+        .fetch(LEVEL_CHANNEL_ID)
+        .catch(() => null) as TextChannel | null;
+
+      if (!levelCh || !levelCh.isTextBased()) {
+        return await interaction.editReply(
+          `❌ No encontré un canal de texto con la ID **${LEVEL_CHANNEL_ID}**.`
+        );
+      }
+
+      // 3. Enviar la tarjeta al canal designado
+      await levelCh.send({ content: `<@${targetUser.id}>`, files: [levelCard] });
+
+      // 4. Confirmar al usuario, de forma privada, dónde quedó la tarjeta
+      await interaction.editReply(
+        `📨 Tu tarjeta de nivel se ha publicado en <#${LEVEL_CHANNEL_ID}>`
+      );
+      break;
+    }
       
     case 'detail':
       // Vista detallada con embed
