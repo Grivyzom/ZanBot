@@ -1,5 +1,6 @@
 // src/commands/redes.ts
-import { SlashCommandBuilder, AttachmentBuilder, ChatInputCommandInteraction, GuildMember } from 'discord.js';
+import { SlashCommandBuilder, AttachmentBuilder, ChatInputCommandInteraction } from 'discord.js';
+import 'dotenv/config';
 import { getSocialNetworks } from '../database';
 import { createCanvas, loadImage, registerFont } from 'canvas';
 import path from 'path';
@@ -18,13 +19,15 @@ export default {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     // Verificar que el usuario tenga el rol Member o superior
+    // Verificar rol por ID desde .env
     if (!interaction.guild) {
       await interaction.reply({ content: 'Este comando solo puede usarse en un servidor.', ephemeral: true });
       return;
     }
     const guildMember = await interaction.guild.members.fetch(interaction.user.id);
-    const minRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'member');
-    if (!minRole || guildMember.roles.highest.position < minRole.position) {
+    const allowed = process.env.ALLOWED_ROLES?.split(',') || [];
+    const hasAccess = guildMember.roles.cache.some(r => allowed.includes(r.id));
+    if (!hasAccess) {
       await interaction.reply({ content: 'No tienes permisos suficientes para usar este comando.', ephemeral: true });
       return;
     }
