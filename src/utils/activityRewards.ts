@@ -3,7 +3,7 @@ import { Client, Message, VoiceState, TextChannel, EmbedBuilder, User, GuildMemb
 import { addXPFromSource, getLevelData, isMilestoneLevel, generateLevelCard } from './levelSystem';
 import db from '../database';
 import crypto from 'crypto';
-
+import { applyRankRoles } from './rankRoles';
 
 interface RankRole {
   level: number;
@@ -735,7 +735,7 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
     
     // 3. Verificar y aplicar recompensas por nivel
     await this.processLevelRewards(member, newLevel);
-    await this.applyRankRoles(member, newLevel);
+    await applyRankRoles(member, newLevel);
   }
   
   // Procesar recompensas por nivel

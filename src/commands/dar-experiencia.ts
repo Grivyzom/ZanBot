@@ -1,6 +1,8 @@
 import { SlashCommandBuilder, CommandInteraction, PermissionFlagsBits } from 'discord.js';
 import { addXP } from '../utils/levelSystem';
 import { ChatInputCommandInteraction } from 'discord.js';
+import { applyRankRoles } from '../utils/rankRoles';
+
 
 export const data = new SlashCommandBuilder()
   .setName('dar-experiencia')
@@ -14,7 +16,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const cantidad = interaction.options.getInteger('cantidad', true);
   const guildId = interaction.guildId!;
   const result = await addXP(user.id, guildId, cantidad);
-  await interaction.reply(`✅ XP actualizada: Nivel **${result.level}**, XP **${result.xp}**.`);
+
+  // asigna rango acorde al nuevo nivel
+  const member = await interaction.guild!.members.fetch(user.id);
+  await applyRankRoles(member, result.level);
+
+  await interaction.reply(
+    `✅ XP actualizada: Nivel **${result.level}**, XP **${result.xp}**.`
+  );
+  
 }
 
 export default { data, execute };
