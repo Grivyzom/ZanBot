@@ -5,6 +5,10 @@ import db from '../database';
 import crypto from 'crypto';
 
 
+interface RankRole {
+  level: number;
+  id: string;
+}
 
 // Configuración avanzada del sistema de XP
 const config = {
@@ -400,7 +404,7 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
     const streakBonus = Math.min(activity.dailyStreak * 10, 50); // 10% por día, máximo 50%
     const baseXP = config.xpValues.dailyCheckIn;
     const xpToAward = Math.floor(baseXP * (1 + streakBonus / 100));
-    
+
     // Actualizar último check-in
     activity.lastDailyCheckIn = now;
     
@@ -426,6 +430,7 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
       nextBonus: (activity.dailyStreak + 1) * 10 > 50 ? 50 : (activity.dailyStreak + 1) * 10
     };
   }
+  
   
   // Procesar boost de servidor
   async processServerBoost(member: GuildMember): Promise<void> {
@@ -730,6 +735,7 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
     
     // 3. Verificar y aplicar recompensas por nivel
     await this.processLevelRewards(member, newLevel);
+    await this.applyRankRoles(member, newLevel);
   }
   
   // Procesar recompensas por nivel
@@ -804,6 +810,32 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
       console.error('Error procesando recompensas por nivel:', error);
     }
   }
+
+  private async applyRankRoles(member: GuildMember, level: number): Promise<void> {
+    const rankRoles: RankRole[] = [
+      { level: 0, id: process.env.ROLE_NUEVO   ?? '' }, // «Nuevo»
+      { level: 5, id: process.env.ROLE_MIEMBRO ?? '' }, // «Miembro»
+    ].filter((r): r is RankRole => r.id.length > 0); // descarta entradas vacías
+    // rango más alto alcanzado
+    const target = rankRoles
+      .filter(r => level >= r.level)
+      .sort((a, b) => b.level - a.level)[0];
+    if (!target) return;
+
+    // Añadir rol nuevo
+    if (!member.roles.cache.has(target.id)) {
+      await member.roles.add(target.id, 'Rank-up');
+    }
+
+    // Quitar roles de rangos inferiores
+    const idsToRemove = rankRoles
+      .map(r => r.id)
+      .filter(id => id !== target.id && member.roles.cache.has(id));
+    if (idsToRemove.length) {
+      await member.roles.remove(idsToRemove, 'Rank-up');
+    }
+  }
+
 }
 
 
