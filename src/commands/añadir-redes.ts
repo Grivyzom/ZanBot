@@ -38,14 +38,14 @@ export default {
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    // Sólo Member (o superior) puede usar este comando
-    const member = interaction.member;
-    if (!(member instanceof GuildMember)) {
+    // Verificar que el usuario tenga el rol Member o superior
+    if (!interaction.guild) {
       await interaction.reply({ content: 'Este comando solo puede usarse en un servidor.', ephemeral: true });
       return;
     }
-    const minRole = interaction.guild?.roles.cache.find(r => r.name.toLowerCase() === 'member');
-    if (minRole && member.roles.highest.position < minRole.position) {
+    const guildMember = await interaction.guild.members.fetch(interaction.user.id);
+    const minRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'member');
+    if (!minRole || guildMember.roles.highest.position < minRole.position) {
       await interaction.reply({ content: 'No tienes permisos suficientes para usar este comando.', ephemeral: true });
       return;
     }
