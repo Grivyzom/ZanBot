@@ -21,6 +21,9 @@ type Command = {
   data: { name: string; toJSON(): any };
   execute: (interaction: ChatInputCommandInteraction) => Promise<any>;
 };
+import { initCleanerScheduler } from './utils/cleanerScheduler';
+
+
 
 // Extiende la interfaz Client para añadir la propiedad 'commands'
 declare module 'discord.js' {
@@ -81,7 +84,7 @@ client.once('ready', async () => {
   console.log(`✅ Conectado como ${client.user!.tag}`);
   console.log('Comandos disponibles:', [...client.commands.keys()]);
 
-
+  await initCleanerScheduler(client);   // ← activa todas las tareas programadas
   
   // IDs de canales para los embeds automáticos
   const javaId = process.env.JAVA_CHANNEL_ID!;

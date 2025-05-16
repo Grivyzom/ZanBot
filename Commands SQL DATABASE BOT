@@ -38,3 +38,9 @@ CREATE TABLE IF NOT EXISTS reports (
   COLLATE=utf8mb4_unicode_ci;
 
 
+
+CREATE TABLE IF NOT EXISTS channel_cleaner (
+  channel_id      VARCHAR(20) PRIMARY KEY,
+  interval_seconds INT NOT NULL,
+  last_run         DATETIME NOT NULL
+);
