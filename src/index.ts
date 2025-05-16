@@ -5,6 +5,7 @@ import {
   Collection,
   GatewayIntentBits,
   ChatInputCommandInteraction,
+  StringSelectMenuInteraction,            // ← nuevo: lo necesitamops para el select-menu
   Partials,
   TextChannel,
   EmbedBuilder
@@ -12,7 +13,10 @@ import {
 import fs from 'fs';
 import path from 'path';
 import { getEmbedColor } from './utils/getEmbedColor';
+import GuildMemberAdd from './events/guildMemberAdd'
 import ActivityTracker from './utils/activityRewards';   // ← añade esto
+import { publishSupportEmbed } from './utils/supportEmbed';              // ← nuevo
+import { createTicketFromSelect } from './utils/createTicketFromSelect'; // ← nuevo
 type Command = {
   data: { name: string; toJSON(): any };
   execute: (interaction: ChatInputCommandInteraction) => Promise<any>;
@@ -37,6 +41,7 @@ const client = new Client({
   partials: [Partials.User, Partials.GuildMember]
 });
 
+new GuildMemberAdd(client);
 const tracker = new ActivityTracker(client);
 client.on('messageCreate',  msg                    => tracker.processMessage(msg));
 client.on('voiceStateUpdate', (oldS, newS)        => tracker.processVoiceState(oldS, newS));
@@ -76,6 +81,8 @@ client.once('ready', async () => {
   console.log(`✅ Conectado como ${client.user!.tag}`);
   console.log('Comandos disponibles:', [...client.commands.keys()]);
 
+
+  
   // IDs de canales para los embeds automáticos
   const javaId = process.env.JAVA_CHANNEL_ID!;
   const bedId  = process.env.BEDROCK_CHANNEL_ID!;
@@ -95,7 +102,7 @@ client.once('ready', async () => {
     const embedJava = new EmbedBuilder()
       .setTitle('¡Cómo unirse en Java! (Computadora)')
       .setDescription('¡Unirse a Grivyzom en Java es súper fácil!')
-      .setColor(getEmbedColor()) // color dinámico :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
+      .setColor(getEmbedColor())
       .addFields(
         {
           name: 'Los pasos',
@@ -103,22 +110,16 @@ client.once('ready', async () => {
             '1. Abre tu Minecraft en cualquier versión superior a 1.20.1\n' +
             '2. Pulsa "Multijugador"\n' +
             '3. Presiona "Agregar servidor"\n' +
-            '4. Completa la "Dirección del servidor" con: `play.grivyzom.com`\n' +
-            '5. ¡Presiona y únete al servidor!',
+            '4. Introduce `java.grivyzom.com`\n' +
+            '5. ¡Disfruta!',
         },
-        {
-          name: 'Información del servidor',
-          value:
-            '• Dirección del servidor (IP): `play.grivyzom.com`\n' +
-            '• Nombre del servidor: Grivyzom\n' +
-            '• Versión recomendada: `1.21.+`',
-        }
       )
       .setFooter({ text: '¿Quieres unirte en Bedrock? Ve a <#1371879333651677244>' })
       .setImage('https://grivyzom.com/bedrock.png');
     await javaCh.send({ embeds: [embedJava] });
   }
 
+  
   // Publicar embed de Bedrock si no existe
   const bedCh = await client.channels.fetch(bedId) as TextChannel;
   if (bedCh && !(await existsEmbed(bedCh, '¡Cómo unirse en Bedrock! (Móvil)'))) {
@@ -140,10 +141,46 @@ client.once('ready', async () => {
       .setImage('https://grivyzom.com/bedrock.png');
     await bedCh.send({ embeds: [embedBed] });
   }
+
+  // Publicar embed de Soporte                 ← nuevo bloque
+  const supportChannelId = process.env.SUPPORT_CHANNEL_ID;
+  if (!supportChannelId) {
+    console.warn('⚠️ Falta SUPPORT_CHANNEL_ID en .env');
+  } else {
+    const supportCh = await client.channels.fetch(supportChannelId);
+    if (supportCh && supportCh.isTextBased()) {
+      await publishSupportEmbed(supportCh as TextChannel);
+    } else {
+      console.warn('⚠️ No se pudo encontrar o no es un canal de texto.');
+    }
+  }
+  
 });
 
-// Manejador de interacciones slash
+// Manejador de interacciones slash y select-menu
 client.on('interactionCreate', async interaction => {
+  // **Select-menu de soporte**           ← nuevo bloque
+  if (interaction.isStringSelectMenu() && interaction.customId === 'support-category') {
+    const category = interaction.values[0];
+
+    try {
+      // Directamente llamamos a tu wrapper, que invoca ticketExecute()
+      await createTicketFromSelect(interaction, category);
+    } catch (err) {
+      console.error(err);
+      // Como ticketExecute no pudo responder, aquí sí damos un reply fallback
+      if (!interaction.replied) {
+        await interaction.reply({
+          content: '❌ Hubo un problema al crear el ticket.',
+          ephemeral: true,
+        });
+      }
+    }
+    return; // importante para no caer en el handler de slash-commands
+  }
+
+
+  // **Slash commands** (tu manejador original)  
   if (!interaction.isChatInputCommand()) return;
   const command = client.commands.get(interaction.commandName);
   if (!command) {
@@ -152,7 +189,7 @@ client.on('interactionCreate', async interaction => {
   }
   try {
     console.log(`Ejecutando comando: ${interaction.commandName}`);
-    await command.execute(interaction);
+    await command.execute(interaction as ChatInputCommandInteraction);
   } catch (error) {
     console.error(`Error ejecutando ${interaction.commandName}:`, error);
     const responseContent = '❌ Ocurrió un error al ejecutar el comando.';
@@ -162,8 +199,7 @@ client.on('interactionCreate', async interaction => {
       await interaction.reply({ content: responseContent, ephemeral: true });
     }
   }
-});-
-
+});
 // Inicia sesión
 client.login(TOKEN)
   .then(() => console.log('🔄 Iniciando sesión...'))

@@ -16,16 +16,18 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const subject = interaction.options.getString('asunto', true);
+
+  const subject = interaction.options.getString('asunto', true)!;
   const userId = interaction.user.id;
-  
-  // Validar longitud del asunto
-  if (subject.length < MIN_SUBJECT_LENGTH) {
-    await interaction.reply({
-      content: `⚠️ El asunto del ticket debe tener al menos ${MIN_SUBJECT_LENGTH} caracteres.`,
+  //  • Detectamos la marca desde el menú:
+  //    si viene de createTicketFromSelect, skipLengthCheck será true
+  const skip = (interaction as any).skipLengthCheck === true;
+
+  if (!skip && subject.length < MIN_SUBJECT_LENGTH) {
+    return interaction.reply({
+      content: `El asunto debe tener al menos ${MIN_SUBJECT_LENGTH} caracteres.`,
       ephemeral: true
     });
-    return;
   }
 
   // Verificar límite de tickets por hora
