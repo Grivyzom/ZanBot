@@ -1,41 +1,66 @@
-import { Client, TextChannel } from 'discord.js';
-import  pool  from '../database';
+import { Client, TextChannel, Snowflake } from 'discord.js';
+import pool from '../database';
 
-type Task = { channel_id: string; interval_seconds: number };
+const tasks = new Map<Snowflake, NodeJS.Timeout>();
 
 export async function initCleanerScheduler(client: Client) {
   const [rows] = (await pool.query(
     'SELECT channel_id, interval_seconds FROM channel_cleaner',
-  )) as [Task[], unknown];
+  )) as [{ channel_id: string; interval_seconds: number }[], unknown];
 
   rows.forEach(({ channel_id, interval_seconds }) =>
-    scheduleTask(client, channel_id, interval_seconds),
+    addOrUpdateTask(client, channel_id, interval_seconds),
   );
 }
 
-function scheduleTask(client: Client, channelId: string, interval: number) {
-  const intervalMs = interval * 1000;
+export async function addOrUpdateTask(
+  client: Client,
+  channelId: Snowflake,
+  intervalSeconds: number,
+) {
+  // Limpia viejo timer
+  if (tasks.has(channelId)) clearInterval(tasks.get(channelId)!);
 
-  setInterval(async () => {
-    const channel = (await client.channels.fetch(channelId).catch(() => null)) as
+  const run = async () => {
+    const ch = (await client.channels.fetch(channelId).catch(() => null)) as
       | TextChannel
       | null;
-    if (!channel || !channel.isTextBased()) return;
+    if (!ch || !ch.isTextBased()) return;
 
     try {
-      // bulkDelete solo admite mensajes <14 d; los más antiguos se borran 1×1
-      let fetched;
-      do {
-        fetched = await channel.bulkDelete(100, true);
-      } while (fetched.size === 100);
+      // 1) Borra en lotes (<14d) con ventana anti-rate-limit
+      let more = true,
+        rounds = 0;
+      while (more && rounds < 3) {
+        const msgs = await ch.bulkDelete(100, true);
+        more = msgs.size === 100;
+        rounds++;
+      }
+      // 2) Mensajes ≥14d
+      let lastId: Snowflake | undefined;
+      for (;;) {
+        const msgs = await ch.messages.fetch({ limit: 100, before: lastId });
+        if (msgs.size === 0) break;
+        for (const m of msgs.values()) {
+          await m.delete().catch(() => null);
+          await wait(350); // 3 req/s aprox.
+        }
+        lastId = msgs.lastKey();
+      }
 
       await pool.execute(
         'UPDATE channel_cleaner SET last_run = NOW() WHERE channel_id = ?',
         [channelId],
       );
-      console.log(`[Cleaner] Limpieza realizada en #${channel.name}`);
+      console.log(`[Cleaner] ${ch.name} limpiado`);
     } catch (err) {
-      console.error(`[Cleaner] Error limpiando #${channelId}`, err);
+      console.error(`[Cleaner] Error en ${channelId}`, err);
     }
-  }, intervalMs);
+  };
+
+  const t = setInterval(run, intervalSeconds * 1000);
+  tasks.set(channelId, t);
 }
+
+// Pequeña utilidad
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));

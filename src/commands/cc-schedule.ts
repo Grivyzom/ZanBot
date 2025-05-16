@@ -4,58 +4,72 @@ import {
   PermissionFlagsBits,
   ChannelType,
   TextChannel,
+  GuildMember,
 } from 'discord.js';
-import pool from '../database';  // ← ajusta la ruta si tu pool está en otro sitio
+import pool from '../database';
+import { addOrUpdateTask } from '../utils/cleanerScheduler';
 
-// ────────────────────────────────────────────────
-// /cc-schedule canal:#general tiempo:1d
-// ────────────────────────────────────────────────
+const MIN_INTERVAL = 10 * 60; // 10 min en segundos
+
 export const data = new SlashCommandBuilder()
   .setName('cc-schedule')
-  .setDescription('Programa el borrado periódico de todos los mensajes de un canal.')
+  .setDescription('Programa o actualiza la limpieza periódica de un canal.')
   .addChannelOption((opt) =>
     opt
       .setName('canal')
-      .setDescription('Canal que se limpiará')
+      .setDescription('Canal a limpiar')
       .setRequired(true)
-      .addChannelTypes(ChannelType.GuildText)
+      .addChannelTypes(ChannelType.GuildText),
   )
   .addStringOption((opt) =>
     opt
       .setName('tiempo')
-      .setDescription('Frecuencia (ej. 30m, 12h, 1d, 2w, 1M)')
-      .setRequired(true)
+      .setDescription('Frecuencia (30m, 6h, 1d, …)')
+      .setRequired(true),
   )
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels);
+  .setDefaultMemberPermissions(
+    PermissionFlagsBits.ManageMessages | PermissionFlagsBits.ManageChannels,
+  );
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  const channel = interaction.options.getChannel('canal', true) as TextChannel;
-  const rawInterval = interaction.options.getString('tiempo', true);
-
-  const match = rawInterval.match(/^(\d+)([smhdwM])$/i);
-  if (!match) {
+  const member = interaction.member as GuildMember;
+  if (
+    !member.permissions.has([
+      PermissionFlagsBits.ManageMessages,
+      PermissionFlagsBits.ManageChannels,
+    ])
+  )
     return interaction.reply({
-      content:
-        '❌ Formato incorrecto. Usa s, m, h, d, w, M. Ej: 30m, 12h, 1d, 2w, 1M',
+      content: '❌ No tienes permisos suficientes.',
       ephemeral: true,
     });
-  }
 
-  const value = Number(match[1]);
-  const unit = match[2].toLowerCase();
+  const channel = interaction.options.getChannel('canal', true) as TextChannel;
+  const raw = interaction.options.getString('tiempo', true);
+  const match = raw.match(/^(\d+)([smhdwM])$/i);
+  if (!match)
+    return interaction.reply({
+      content: 'Formato inválido. Ej: 30m, 6h, 1d.',
+      ephemeral: true,
+    });
 
-  const unitToSeconds: Record<string, number> = {
+  const [_, value, unit] = match;
+  const v = Number(value);
+  const factor: Record<string, number> = {
     s: 1,
     m: 60,
-    h: 60 * 60,
-    d: 60 * 60 * 24,
-    w: 60 * 60 * 24 * 7,
-    M: 60 * 60 * 24 * 30,
+    h: 3600,
+    d: 86400,
+    w: 604800,
+    M: 2592000,
   };
+  const seconds = v * factor[unit];
+  if (seconds < MIN_INTERVAL)
+    return interaction.reply({
+      content: `El intervalo mínimo es de 10 min.`,
+      ephemeral: true,
+    });
 
-  const seconds = value * unitToSeconds[unit];
-
-  // Guarda (o actualiza) en DB
   await pool.execute(
     `INSERT INTO channel_cleaner (channel_id, interval_seconds, last_run)
      VALUES (?, ?, NOW())
@@ -63,8 +77,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     [channel.id, seconds],
   );
 
-  await interaction.reply({
-    content: `🗑️ El canal <#${channel.id}> se limpiará cada **${rawInterval}**.`,
+  await addOrUpdateTask(interaction.client, channel.id, seconds);
+
+  interaction.reply({
+    content: `🗑️ El canal <#${channel.id}> se limpiará cada **${raw}**.`,
     ephemeral: true,
   });
 }
