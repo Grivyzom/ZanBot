@@ -1,9 +1,11 @@
 // src/api/statusGRV.ts
 import express from 'express';
+import cors from 'cors';
 import type { Client } from 'discord.js';
 
 export function initStatusApi(client: Client) {
   const app  = express();
+  app.use(cors());                 // 👈 permite peticiones cross-origin
   const port = Number(process.env.API_PORT ?? 3001);
   const guildId = process.env.GUILD_ID!;          // mismo que ya usas en .env
 
