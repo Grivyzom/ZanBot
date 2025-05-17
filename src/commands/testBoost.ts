@@ -7,7 +7,9 @@ dotenv.config();
 export default {
   data: new SlashCommandBuilder()
     .setName('testboost')
-    .setDescription('Envía un embed de prueba de booster'),
+    .setDescription('Envía un embed de prueba de booster')
+    // Opcional: evita que se muestre como comando “público” (requiere Administrator para ver)
+    .setDefaultMemberPermissions(0),
   async execute(interaction: CommandInteraction) {
     // ① Validar que sea en un servidor y que tengamos al miembro
     if (!interaction.guild || !interaction.member) {

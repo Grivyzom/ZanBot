@@ -1,16 +1,26 @@
 // src/commands/java.ts
 import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { getEmbedColor } from '../utils/getEmbedColor';
+import { requireRole } from '../utils/requireRole';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const STAFF_ROLE_ID = process.env.STAFF_ROLE_ID!;
 
 export default {
   data: new SlashCommandBuilder()
     .setName('java')
-    .setDescription('Cómo unirse en Java (Computadora)'),
+    .setDescription('Cómo unirse en Java (Computadora)')
+    // Opcional: evita que se muestre como comando “público” (requiere Administrator para ver)
+    .setDefaultMemberPermissions(0),
   async execute(interaction: ChatInputCommandInteraction) {
+    if (!(await requireRole(STAFF_ROLE_ID)(interaction))) return;
+
     const embed = new EmbedBuilder()
+    
       .setTitle('¡Cómo unirse en Java! (Computadora)')
       .setDescription('¡Unirse a Grivyzom en Java es súper fácil!')
-      .setColor(getEmbedColor()) // color dinámico :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
+      .setColor(getEmbedColor())
       .addFields(
         {
           name: 'Los pasos',

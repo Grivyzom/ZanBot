@@ -1,12 +1,20 @@
-// src/commands/bedrock.ts
+// src/commands/java.ts
 import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
 import { getEmbedColor } from '../utils/getEmbedColor';
+import { requireRole } from '../utils/requireRole';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const STAFF_ROLE_ID = process.env.STAFF_ROLE_ID!;
 
 export default {
   data: new SlashCommandBuilder()
     .setName('bedrock')
-    .setDescription('Cómo unirse en Bedrock (:mobile_phone: :computer: :video_game:)'),
+    .setDescription('Cómo unirse en Bedrock (:mobile_phone: :computer: :video_game:)')
+    .setDefaultMemberPermissions(0),
   async execute(interaction: ChatInputCommandInteraction) {
+    if (!(await requireRole(STAFF_ROLE_ID)(interaction))) return;
+
     const embed = new EmbedBuilder()
       .setTitle('¡Cómo unirse en Bedrock! (Móvil)')
       .setDescription(
@@ -24,6 +32,6 @@ export default {
       .setFooter({ text: '¿Quieres unirte con Java? Ve a <#123456789012345678>' })
       .setImage('https://grivyzom.com/bedrock.png');
 
-    await interaction.reply({ embeds: [embed] });
+      await interaction.reply({ embeds: [embed] });
   },
 };
