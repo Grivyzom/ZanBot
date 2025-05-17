@@ -12,12 +12,13 @@ import {
 } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
+import cron from 'node-cron';
 import { getEmbedColor } from './utils/getEmbedColor';
 import GuildMemberAdd from './events/guildMemberAdd'
 import ActivityTracker from './utils/activityRewards';   // ← añade esto
 import { publishSupportEmbed } from './utils/supportEmbed';              // ← nuevo
 import { createTicketFromSelect } from './utils/createTicketFromSelect'; // ← nuevo
-import cron from 'node-cron';
+import { initStatusApi } from './api/statusGRV';  // 👈 nuevo
 type Command = {
   data: { name: string; toJSON(): any };
   execute: (interaction: ChatInputCommandInteraction) => Promise<any>;
@@ -40,7 +41,9 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,     // ← necesarios
     GatewayIntentBits.MessageContent,    // ←
-    GatewayIntentBits.GuildVoiceStates   // ← si quieres XP por voz
+    GatewayIntentBits.GuildVoiceStates,   // ← si quieres XP por voz
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildPresences          // 👈 nuevo
   ],
   partials: [Partials.User, Partials.GuildMember]
 });
@@ -84,7 +87,7 @@ for (const file of commandFiles) {
 client.once('ready', async () => {
   console.log(`✅ Conectado como ${client.user!.tag}`);
   console.log('Comandos disponibles:', [...client.commands.keys()]);
-
+  initStatusApi(client);
   await initCleanerScheduler(client);   // ← activa todas las tareas programadas
   
   // IDs de canales para los embeds automáticos
