@@ -17,6 +17,7 @@ import GuildMemberAdd from './events/guildMemberAdd'
 import ActivityTracker from './utils/activityRewards';   // ← añade esto
 import { publishSupportEmbed } from './utils/supportEmbed';              // ← nuevo
 import { createTicketFromSelect } from './utils/createTicketFromSelect'; // ← nuevo
+import cron from 'node-cron';
 type Command = {
   data: { name: string; toJSON(): any };
   execute: (interaction: ChatInputCommandInteraction) => Promise<any>;
@@ -157,7 +158,8 @@ client.once('ready', async () => {
       console.warn('⚠️ No se pudo encontrar o no es un canal de texto.');
     }
   }
-  
+
+
 });
 
 // Manejador de interacciones slash y select-menu
