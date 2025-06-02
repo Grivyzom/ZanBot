@@ -9,85 +9,83 @@ import { getEmbedColor } from '../utils/getEmbedColor';
 import { getAllTagStats, getUsersByTag } from '../database';
 import { TAG_CATEGORIES, getTagCategoryById, formatTagDisplay } from '../config/tagsConfig';
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName('tagsstats')
-    .setDescription('[ADMIN] Ver estadísticas de tags del servidor')
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('general')
-        .setDescription('Ver estadísticas generales de todos los tags')
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('category')
-        .setDescription('Ver estadísticas de una categoría específica')
-        .addStringOption(option =>
-          option
-            .setName('categoria')
-            .setDescription('Categoría a analizar')
-            .setRequired(true)
-            .addChoices(
-              ...TAG_CATEGORIES.map(cat => ({
-                name: `${cat.emoji} ${cat.name}`,
-                value: cat.id
-              }))
-            )
-        )
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('users')
-        .setDescription('Ver usuarios con un tag específico')
-        .addStringOption(option =>
-          option
-            .setName('categoria')
-            .setDescription('Categoría del tag')
-            .setRequired(true)
-            .addChoices(
-              ...TAG_CATEGORIES.map(cat => ({
-                name: `${cat.emoji} ${cat.name}`,
-                value: cat.id
-              }))
-            )
-        )
-        .addStringOption(option =>
-          option
-            .setName('valor')
-            .setDescription('Valor específico del tag (opcional)')
-            .setRequired(false)
-        )
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+export const data = new SlashCommandBuilder()
+  .setName('tagsstats')
+  .setDescription('[ADMIN] Ver estadísticas de tags del servidor')
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('general')
+      .setDescription('Ver estadísticas generales de todos los tags')
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('category')
+      .setDescription('Ver estadísticas de una categoría específica')
+      .addStringOption(option =>
+        option
+          .setName('categoria')
+          .setDescription('Categoría a analizar')
+          .setRequired(true)
+          .addChoices(
+            ...TAG_CATEGORIES.map(cat => ({
+              name: `${cat.emoji} ${cat.name}`,
+              value: cat.id
+            }))
+          )
+      )
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('users')
+      .setDescription('Ver usuarios con un tag específico')
+      .addStringOption(option =>
+        option
+          .setName('categoria')
+          .setDescription('Categoría del tag')
+          .setRequired(true)
+          .addChoices(
+            ...TAG_CATEGORIES.map(cat => ({
+              name: `${cat.emoji} ${cat.name}`,
+              value: cat.id
+            }))
+          )
+      )
+      .addStringOption(option =>
+        option
+          .setName('valor')
+          .setDescription('Valor específico del tag (opcional)')
+          .setRequired(false)
+      )
+  )
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
 
-  async execute(interaction: ChatInputCommandInteraction) {
-    // Verificar permisos
-    const adminRoleId = process.env.ADMIN_ROLE_ID;
-    const staffRoleId = process.env.STAFF_ROLE_ID;
-    const member = interaction.member as any;
+export async function execute(interaction: ChatInputCommandInteraction) {
+  // Verificar permisos
+  const adminRoleId = process.env.ADMIN_ROLE_ID;
+  const staffRoleId = process.env.STAFF_ROLE_ID;
+  const member = interaction.member as any;
 
-    if (!member?.roles?.cache?.has(adminRoleId) && !member?.roles?.cache?.has(staffRoleId)) {
-      return await interaction.reply({
-        content: '❌ No tienes permisos para usar este comando.',
-        ephemeral: true
-      });
-    }
-
-    const subcommand = interaction.options.getSubcommand();
-
-    switch (subcommand) {
-      case 'general':
-        await handleGeneralStats(interaction);
-        break;
-      case 'category':
-        await handleCategoryStats(interaction);
-        break;
-      case 'users':
-        await handleUsersStats(interaction);
-        break;
-    }
+  if (!member?.roles?.cache?.has(adminRoleId) && !member?.roles?.cache?.has(staffRoleId)) {
+    return await interaction.reply({
+      content: '❌ No tienes permisos para usar este comando.',
+      ephemeral: true
+    });
   }
-};
+
+  const subcommand = interaction.options.getSubcommand();
+
+  switch (subcommand) {
+    case 'general':
+      await handleGeneralStats(interaction);
+      break;
+    case 'category':
+      await handleCategoryStats(interaction);
+      break;
+    case 'users':
+      await handleUsersStats(interaction);
+      break;
+  }
+}
 
 async function handleGeneralStats(interaction: ChatInputCommandInteraction) {
   try {
@@ -299,3 +297,5 @@ async function handleUsersStats(interaction: ChatInputCommandInteraction) {
     });
   }
 }
+
+export default { data, execute };

@@ -40,10 +40,8 @@ export async function publishTagsEmbed(channel: TextChannel): Promise<void> {
         '**Categorías disponibles:**'
       )
       .setColor(getEmbedColor())
-      .setThumbnail('https://grivyzom.com/logo.png') // Ajusta la URL según tu logo
       .setFooter({ 
-        text: 'Sistema de Tags • Grivyzom', 
-        iconURL: 'https://grivyzom.com/favicon.ico' 
+        text: 'Sistema de Tags • Grivyzom'
       })
       .setTimestamp();
 

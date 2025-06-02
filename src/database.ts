@@ -140,21 +140,23 @@ const pool = mysql.createPool({
     console.error('❌ Error en migración de la tabla `mutes`:', err);
   }
 
-  // Tabla para gestionar tags de usuarios
+  // Tabla para gestionar tags de usuarios - VERSIÓN FINAL
   const sqlUserTags = `
     CREATE TABLE IF NOT EXISTS user_tags (
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id VARCHAR(20) NOT NULL,
       guild_id VARCHAR(20) NOT NULL,
-      tag_type ENUM('country', 'age_range', 'games', 'minecraft_version', 'programming', 'interests') NOT NULL,
+      tag_type VARCHAR(50) NOT NULL,
       tag_value VARCHAR(100) NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      UNIQUE KEY unique_user_tag (user_id, guild_id, tag_type),
+      UNIQUE KEY unique_user_tag_multi (user_id, guild_id, tag_type, tag_value),
       INDEX idx_user_guild (user_id, guild_id),
-      INDEX idx_tag_type (tag_type)
+      INDEX idx_tag_type (tag_type),
+      INDEX idx_tag_value (tag_value)
     ) CHARACTER SET utf8mb4;
   `;
+
   try {
     await pool.execute(sqlUserTags);
     console.log('✅ Tabla `user_tags` asegurada en la base de datos');
@@ -165,27 +167,46 @@ const pool = mysql.createPool({
 })();
 
 
-  // Funciones para gestionar tags de usuarios
-  export async function setUserTag(
-    userId: string,
-    guildId: string,
-    tagType: string,
-    tagValue: string
-  ): Promise<void> {
+// Reemplazar las funciones de tags en src/database.ts con estas versiones mejoradas:
+
+// Funciones para gestionar tags de usuarios (VERSION MEJORADA)
+export async function setUserTag(
+  userId: string,
+  guildId: string,
+  tagType: string,
+  tagValue: string
+): Promise<void> {
+  // Para tags de selección múltiple, añadir el valor si no existe
+  // Para tags de selección única, reemplazar el valor existente
+  const { TAG_CATEGORIES } = await import('./config/tagsConfig');
+  const category = TAG_CATEGORIES.find(cat => cat.id === tagType);
+  
+  if (category?.multiSelect) {
+    // Multi-select: añadir sin eliminar otros valores
     await pool.execute(
-      `INSERT INTO user_tags (user_id, guild_id, tag_type, tag_value) 
-      VALUES (?, ?, ?, ?) 
-      ON DUPLICATE KEY UPDATE tag_value = VALUES(tag_value), updated_at = CURRENT_TIMESTAMP`,
+      `INSERT IGNORE INTO user_tags (user_id, guild_id, tag_type, tag_value) 
+       VALUES (?, ?, ?, ?)`,
+      [userId, guildId, tagType, tagValue]
+    );
+  } else {
+    // Single-select: eliminar valores anteriores y añadir el nuevo
+    await pool.execute(
+      'DELETE FROM user_tags WHERE user_id = ? AND guild_id = ? AND tag_type = ?',
+      [userId, guildId, tagType]
+    );
+    await pool.execute(
+      'INSERT INTO user_tags (user_id, guild_id, tag_type, tag_value) VALUES (?, ?, ?, ?)',
       [userId, guildId, tagType, tagValue]
     );
   }
+}
 
   export async function getUserTags(
     userId: string,
     guildId: string
   ): Promise<Array<{ tag_type: string; tag_value: string; created_at: Date; updated_at: Date }>> {
     const [rows] = await pool.execute(
-      'SELECT tag_type, tag_value, created_at, updated_at FROM user_tags WHERE user_id = ? AND guild_id = ? ORDER BY tag_type',
+      'SELECT tag_type, tag_value, created_at, updated_at FROM user_tags WHERE user_id = ? AND guild_id = ? ORDER BY tag_type, tag_value',
       [userId, guildId]
     );
     return rows as Array<{ tag_type: string; tag_value: string; created_at: Date; updated_at: Date }>;
@@ -231,6 +252,31 @@ const pool = mysql.createPool({
       [guildId]
     );
     return rows as Array<{ tag_type: string; tag_value: string; count: number }>;
+  }
+
+  export async function addUserTag(
+    userId: string,
+    guildId: string,
+    tagType: string,
+    tagValue: string
+  ): Promise<void> {
+    await pool.execute(
+      `INSERT IGNORE INTO user_tags (user_id, guild_id, tag_type, tag_value) 
+      VALUES (?, ?, ?, ?)`,
+      [userId, guildId, tagType, tagValue]
+    );
+  }
+
+  export async function removeUserTagValue(
+    userId: string,
+    guildId: string,
+    tagType: string,
+    tagValue: string
+  ): Promise<void> {
+    await pool.execute(
+      'DELETE FROM user_tags WHERE user_id = ? AND guild_id = ? AND tag_type = ? AND tag_value = ?',
+      [userId, guildId, tagType, tagValue]
+    );
   }
 
   // Funciones para gestionar mutes

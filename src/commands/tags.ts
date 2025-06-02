@@ -16,60 +16,58 @@ import { getEmbedColor } from '../utils/getEmbedColor';
 import { TAG_CATEGORIES, getTagCategoryById, formatTagDisplay } from '../config/tagsConfig';
 import { setUserTag, getUserTags, removeUserTag } from '../database';
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName('tags')
-    .setDescription('Gestiona tus tags personales')
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('setup')
-        .setDescription('Configura tus tags personales')
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('view')
-        .setDescription('Ver tus tags actuales o los de otro usuario')
-        .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Usuario del que ver los tags (opcional)')
-            .setRequired(false)
-        )
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('remove')
-        .setDescription('Eliminar un tag específico')
-        .addStringOption(option =>
-          option
-            .setName('categoria')
-            .setDescription('Categoría del tag a eliminar')
-            .setRequired(true)
-            .addChoices(
-              ...TAG_CATEGORIES.map(cat => ({
-                name: `${cat.emoji} ${cat.name}`,
-                value: cat.id
-              }))
-            )
-        )
-    ),
+export const data = new SlashCommandBuilder()
+  .setName('tags')
+  .setDescription('Gestiona tus tags personales')
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('setup')
+      .setDescription('Configura tus tags personales')
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('view')
+      .setDescription('Ver tus tags actuales o los de otro usuario')
+      .addUserOption(option =>
+        option
+          .setName('usuario')
+          .setDescription('Usuario del que ver los tags (opcional)')
+          .setRequired(false)
+      )
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('remove')
+      .setDescription('Eliminar un tag específico')
+      .addStringOption(option =>
+        option
+          .setName('categoria')
+          .setDescription('Categoría del tag a eliminar')
+          .setRequired(true)
+          .addChoices(
+            ...TAG_CATEGORIES.map(cat => ({
+              name: `${cat.emoji} ${cat.name}`,
+              value: cat.id
+            }))
+          )
+      )
+  );
 
-  async execute(interaction: ChatInputCommandInteraction) {
-    const subcommand = interaction.options.getSubcommand();
+export async function execute(interaction: ChatInputCommandInteraction) {
+  const subcommand = interaction.options.getSubcommand();
 
-    switch (subcommand) {
-      case 'setup':
-        await handleSetup(interaction);
-        break;
-      case 'view':
-        await handleView(interaction);
-        break;
-      case 'remove':
-        await handleRemove(interaction);
-        break;
-    }
+  switch (subcommand) {
+    case 'setup':
+      await handleSetup(interaction);
+      break;
+    case 'view':
+      await handleView(interaction);
+      break;
+    case 'remove':
+      await handleRemove(interaction);
+      break;
   }
-};
+}
 
 async function handleSetup(interaction: ChatInputCommandInteraction) {
   const embed = new EmbedBuilder()
@@ -154,7 +152,7 @@ async function handleCategorySelection(interaction: StringSelectMenuInteraction,
             .setLabel(option.label)
             .setDescription(option.description || `Seleccionar ${option.label}`)
             .setValue(option.value)
-            .setEmoji(category.emoji || '❓') // Usa '❓' como emoji por defecto si es undefined
+            .setEmoji(category.emoji || '❓')
         )
       );
 
@@ -346,3 +344,5 @@ async function notifyTagsChannel(guild: Guild, user: User, categoryId: string, v
     console.error('Error al notificar en canal de tags:', error);
   }
 }
+
+export default { data, execute };

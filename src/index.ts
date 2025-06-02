@@ -19,6 +19,7 @@ import ActivityTracker from './utils/activityRewards';   // ← añade esto
 import { publishSupportEmbed } from './utils/supportEmbed';              // ← nuevo
 import { createTicketFromSelect } from './utils/createTicketFromSelect'; // ← nuevo
 import { initStatusApi } from './api/statusGRV';  // 👈 nuevo
+import { publishTagsEmbed, handleTagsButtonInteraction } from './utils/tagsEmbed';
 type Command = {
   data: { name: string; toJSON(): any };
   execute: (interaction: ChatInputCommandInteraction) => Promise<any>;
@@ -88,7 +89,7 @@ client.once('ready', async () => {
   console.log(`✅ Conectado como ${client.user!.tag}`);
   console.log('Comandos disponibles:', [...client.commands.keys()]);
   initStatusApi(client);
-  await initCleanerScheduler(client);   // ← activa todas las tareas programadas
+  await initCleanerScheduler(client);
   
   // IDs de canales para los embeds automáticos
   const javaId = process.env.JAVA_CHANNEL_ID!;
@@ -161,12 +162,41 @@ client.once('ready', async () => {
       console.warn('⚠️ No se pudo encontrar o no es un canal de texto.');
     }
   }
-
+  
+  // ---- NUEVO: Publicar embed de Tags ----
+  const tagsChannelId = process.env.TAGS_CHANNEL_ID;
+  if (!tagsChannelId) {
+    console.warn('⚠️ Falta TAGS_CHANNEL_ID en .env');
+  } else {
+    const tagsCh = await client.channels.fetch(tagsChannelId);
+    if (tagsCh && tagsCh.isTextBased()) {
+      await publishTagsEmbed(tagsCh as TextChannel);
+    } else {
+      console.warn('⚠️ No se pudo encontrar el canal de tags o no es un canal de texto.');
+    }
+  }
 
 });
 
 // Manejador de interacciones slash y select-menu
 client.on('interactionCreate', async interaction => {
+
+  // **Botones de tags**
+  if (interaction.isButton() && interaction.customId.startsWith('tags-')) {
+    try {
+      await handleTagsButtonInteraction(interaction);
+    } catch (err) {
+      console.error('Error en botón de tags:', err);
+      if (!interaction.replied) {
+        await interaction.reply({
+          content: '❌ Hubo un problema con esta acción.',
+          ephemeral: true,
+        });
+      }
+    }
+    return;
+  }
+
   // **Select-menu de soporte**           ← nuevo bloque
   if (interaction.isStringSelectMenu() && interaction.customId === 'support-category') {
     const category = interaction.values[0];
@@ -184,7 +214,8 @@ client.on('interactionCreate', async interaction => {
         });
       }
     }
-    return; // importante para no caer en el handler de slash-commands
+
+
   }
 
 
@@ -207,6 +238,9 @@ client.on('interactionCreate', async interaction => {
       await interaction.reply({ content: responseContent, ephemeral: true });
     }
   }
+
+  
+
 });
 // Inicia sesión
 client.login(TOKEN)

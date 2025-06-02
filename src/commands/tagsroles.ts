@@ -8,60 +8,58 @@ import {
 import { getEmbedColor } from '../utils/getEmbedColor';
 import { assignTagRoles, updateAllTagRoles, createTagRoles } from '../utils/tagRoles';
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName('tagsroles')
-    .setDescription('[ADMIN] Gestionar roles automáticos por tags')
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('create')
-        .setDescription('Crear roles automáticos para tags')
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('update')
-        .setDescription('Actualizar roles de un usuario específico')
-        .addUserOption(option =>
-          option
-            .setName('usuario')
-            .setDescription('Usuario al que actualizar roles')
-            .setRequired(true)
-        )
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('updateall')
-        .setDescription('Actualizar roles de todos los usuarios (CUIDADO: Proceso intensivo)')
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles),
+export const data = new SlashCommandBuilder()
+  .setName('tagsroles')
+  .setDescription('[ADMIN] Gestionar roles automáticos por tags')
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('create')
+      .setDescription('Crear roles automáticos para tags')
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('update')
+      .setDescription('Actualizar roles de un usuario específico')
+      .addUserOption(option =>
+        option
+          .setName('usuario')
+          .setDescription('Usuario al que actualizar roles')
+          .setRequired(true)
+      )
+  )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('updateall')
+      .setDescription('Actualizar roles de todos los usuarios (CUIDADO: Proceso intensivo)')
+  )
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles);
 
-  async execute(interaction: ChatInputCommandInteraction) {
-    // Verificar permisos
-    const adminRoleId = process.env.ADMIN_ROLE_ID;
-    const member = interaction.member as any;
+export async function execute(interaction: ChatInputCommandInteraction) {
+  // Verificar permisos
+  const adminRoleId = process.env.ADMIN_ROLE_ID;
+  const member = interaction.member as any;
 
-    if (!member?.roles?.cache?.has(adminRoleId)) {
-      return await interaction.reply({
-        content: '❌ No tienes permisos para usar este comando.',
-        ephemeral: true
-      });
-    }
-
-    const subcommand = interaction.options.getSubcommand();
-
-    switch (subcommand) {
-      case 'create':
-        await handleCreateRoles(interaction);
-        break;
-      case 'update':
-        await handleUpdateUser(interaction);
-        break;
-      case 'updateall':
-        await handleUpdateAll(interaction);
-        break;
-    }
+  if (!member?.roles?.cache?.has(adminRoleId)) {
+    return await interaction.reply({
+      content: '❌ No tienes permisos para usar este comando.',
+      ephemeral: true
+    });
   }
-};
+
+  const subcommand = interaction.options.getSubcommand();
+
+  switch (subcommand) {
+    case 'create':
+      await handleCreateRoles(interaction);
+      break;
+    case 'update':
+      await handleUpdateUser(interaction);
+      break;
+    case 'updateall':
+      await handleUpdateAll(interaction);
+      break;
+  }
+}
 
 async function handleCreateRoles(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ ephemeral: true });
@@ -148,3 +146,5 @@ async function handleUpdateAll(interaction: ChatInputCommandInteraction) {
     });
   }
 }
+
+export default { data, execute };
