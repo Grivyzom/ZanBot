@@ -20,7 +20,6 @@ import { publishSupportEmbed } from './utils/supportEmbed';              // ← 
 import { createTicketFromSelect } from './utils/createTicketFromSelect'; // ← nuevo
 import { initStatusApi } from './api/statusGRV';  // 👈 nuevo
 import { publishTagsEmbed, handleTagsButtonInteraction } from './utils/tagsEmbed';
-import { handleOriginButtonInteraction } from './utils/originButtonHandler'; // ← NUEVA IMPORTACIÓN
 type Command = {
   data: { name: string; toJSON(): any };
   execute: (interaction: ChatInputCommandInteraction) => Promise<any>;
@@ -180,26 +179,9 @@ client.once('ready', async () => {
 });
 
 // Manejador de interacciones slash y select-menu
-// Manejador de interacciones slash y select-menu
 client.on('interactionCreate', async interaction => {
 
-  // **Botones de procedencia para usuarios nuevos** ← NUEVO BLOQUE
-  if (interaction.isButton() && interaction.customId.startsWith('origin_')) {
-    try {
-      await handleOriginButtonInteraction(interaction);
-    } catch (err) {
-      console.error('Error en botón de procedencia:', err);
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: '❌ Hubo un problema procesando tu selección.',
-          ephemeral: true,
-        });
-      }
-    }
-    return;
-  }
-
-  // **Botones de tags** (código existente)
+  // **Botones de tags**
   if (interaction.isButton() && interaction.customId.startsWith('tags-')) {
     try {
       await handleTagsButtonInteraction(interaction);
@@ -215,14 +197,16 @@ client.on('interactionCreate', async interaction => {
     return;
   }
 
-  // **Select-menu de soporte** (código existente)
+  // **Select-menu de soporte**           ← nuevo bloque
   if (interaction.isStringSelectMenu() && interaction.customId === 'support-category') {
     const category = interaction.values[0];
 
     try {
+      // Directamente llamamos a tu wrapper, que invoca ticketExecute()
       await createTicketFromSelect(interaction, category);
     } catch (err) {
       console.error(err);
+      // Como ticketExecute no pudo responder, aquí sí damos un reply fallback
       if (!interaction.replied) {
         await interaction.reply({
           content: '❌ Hubo un problema al crear el ticket.',
@@ -230,18 +214,18 @@ client.on('interactionCreate', async interaction => {
         });
       }
     }
-    return;
+
+
   }
 
-  // **Slash commands** (código existente)
+
+  // **Slash commands** (tu manejador original)  
   if (!interaction.isChatInputCommand()) return;
-  
   const command = client.commands.get(interaction.commandName);
   if (!command) {
     console.log(`Comando no encontrado: ${interaction.commandName}`);
     return;
   }
-  
   try {
     console.log(`Ejecutando comando: ${interaction.commandName}`);
     await command.execute(interaction as ChatInputCommandInteraction);
@@ -254,8 +238,10 @@ client.on('interactionCreate', async interaction => {
       await interaction.reply({ content: responseContent, ephemeral: true });
     }
   }
-});
 
+  
+
+});
 // Inicia sesión
 client.login(TOKEN)
   .then(() => console.log('🔄 Iniciando sesión...'))
