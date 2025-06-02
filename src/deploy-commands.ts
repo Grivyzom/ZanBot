@@ -51,7 +51,6 @@ import path from 'path';
         
         const commandData = command.data.toJSON();
         commands.push(commandData);
-        require('./commands/testBoost').default.data.toJSON(),
         console.log(`✅ Comando "${commandData.name}" cargado correctamente.`);
       } catch (error) {
         console.error(`❌ Error al cargar el comando ${file}:`, error);

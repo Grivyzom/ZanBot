@@ -140,7 +140,98 @@ const pool = mysql.createPool({
     console.error('❌ Error en migración de la tabla `mutes`:', err);
   }
 
+  // Tabla para gestionar tags de usuarios
+  const sqlUserTags = `
+    CREATE TABLE IF NOT EXISTS user_tags (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id VARCHAR(20) NOT NULL,
+      guild_id VARCHAR(20) NOT NULL,
+      tag_type ENUM('country', 'age_range', 'games', 'minecraft_version', 'programming', 'interests') NOT NULL,
+      tag_value VARCHAR(100) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY unique_user_tag (user_id, guild_id, tag_type),
+      INDEX idx_user_guild (user_id, guild_id),
+      INDEX idx_tag_type (tag_type)
+    ) CHARACTER SET utf8mb4;
+  `;
+  try {
+    await pool.execute(sqlUserTags);
+    console.log('✅ Tabla `user_tags` asegurada en la base de datos');
+  } catch (err: any) {
+    console.error('❌ Error en migración de la tabla `user_tags`:', err);
+  }
+
 })();
+
+
+  // Funciones para gestionar tags de usuarios
+  export async function setUserTag(
+    userId: string,
+    guildId: string,
+    tagType: string,
+    tagValue: string
+  ): Promise<void> {
+    await pool.execute(
+      `INSERT INTO user_tags (user_id, guild_id, tag_type, tag_value) 
+      VALUES (?, ?, ?, ?) 
+      ON DUPLICATE KEY UPDATE tag_value = VALUES(tag_value), updated_at = CURRENT_TIMESTAMP`,
+      [userId, guildId, tagType, tagValue]
+    );
+  }
+
+  export async function getUserTags(
+    userId: string,
+    guildId: string
+  ): Promise<Array<{ tag_type: string; tag_value: string; created_at: Date; updated_at: Date }>> {
+    const [rows] = await pool.execute(
+      'SELECT tag_type, tag_value, created_at, updated_at FROM user_tags WHERE user_id = ? AND guild_id = ? ORDER BY tag_type',
+      [userId, guildId]
+    );
+    return rows as Array<{ tag_type: string; tag_value: string; created_at: Date; updated_at: Date }>;
+  }
+
+  export async function getUsersByTag(
+    guildId: string,
+    tagType: string,
+    tagValue?: string
+  ): Promise<Array<{ user_id: string; tag_value: string }>> {
+    let query = 'SELECT user_id, tag_value FROM user_tags WHERE guild_id = ? AND tag_type = ?';
+    const params: any[] = [guildId, tagType];
+    
+    if (tagValue) {
+      query += ' AND tag_value = ?';
+      params.push(tagValue);
+    }
+    
+    const [rows] = await pool.execute(query, params);
+    return rows as Array<{ user_id: string; tag_value: string }>;
+  }
+
+  export async function removeUserTag(
+    userId: string,
+    guildId: string,
+    tagType: string
+  ): Promise<void> {
+    await pool.execute(
+      'DELETE FROM user_tags WHERE user_id = ? AND guild_id = ? AND tag_type = ?',
+      [userId, guildId, tagType]
+    );
+  }
+
+  export async function getAllTagStats(
+    guildId: string
+  ): Promise<Array<{ tag_type: string; tag_value: string; count: number }>> {
+    const [rows] = await pool.execute(
+      `SELECT tag_type, tag_value, COUNT(*) as count 
+      FROM user_tags 
+      WHERE guild_id = ? 
+      GROUP BY tag_type, tag_value 
+      ORDER BY tag_type, count DESC`,
+      [guildId]
+    );
+    return rows as Array<{ tag_type: string; tag_value: string; count: number }>;
+  }
 
   // Funciones para gestionar mutes
   export async function addMute(
