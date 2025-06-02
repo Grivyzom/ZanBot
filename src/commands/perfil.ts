@@ -1,4 +1,3 @@
-// src/commands/perfil.ts
 import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
@@ -13,8 +12,7 @@ import {
 } from 'discord.js';
 import { Canvas, createCanvas, loadImage, CanvasRenderingContext2D } from 'canvas';
 import { join } from 'path';
-// ❌ Elimina esta línea que causa el error:
-// import Color from 'color';
+import Color from 'color';
 
 /**
  * Convierte un locale a una bandera emoji con un manejo más completo
@@ -178,31 +176,6 @@ async function drawAvatar(
 }
 
 /**
- * ✅ Función alternativa para manejar colores sin la librería 'color'
- */
-function processColor(colorInput: string): { base: string; darker: string } {
-  // Si es un color hex válido, procesarlo manualmente
-  if (colorInput.startsWith('#') && colorInput.length === 7) {
-    // Extraer componentes RGB
-    const r = parseInt(colorInput.slice(1, 3), 16);
-    const g = parseInt(colorInput.slice(3, 5), 16);
-    const b = parseInt(colorInput.slice(5, 7), 16);
-    
-    // Crear versión más oscura reduciendo cada componente en 40%
-    const darkerR = Math.floor(r * 0.6);
-    const darkerG = Math.floor(g * 0.6);
-    const darkerB = Math.floor(b * 0.6);
-    
-    const darker = `#${darkerR.toString(16).padStart(2, '0')}${darkerG.toString(16).padStart(2, '0')}${darkerB.toString(16).padStart(2, '0')}`;
-    
-    return { base: colorInput, darker };
-  }
-  
-  // Colores predeterminados si no es válido
-  return { base: '#7289DA', darker: '#4a5a8a' };
-}
-
-/**
  * Genera una imagen de perfil usando Canvas
  */
 async function generateProfileCard(
@@ -223,8 +196,8 @@ async function generateProfileCard(
     ? `#${member.roles.highest.color.toString(16).padStart(6, '0')}` 
     : '#7289DA';
   
-  // ✅ Usar la función alternativa en lugar de la librería Color
-  const { base: baseColor, darker: darkerColor } = processColor(roleColor);
+  const baseColor = Color(roleColor);
+  const darkerColor = baseColor.darken(0.4).hex();
   
   gradient.addColorStop(0, darkerColor);
   gradient.addColorStop(1, '#1a1a1a');
