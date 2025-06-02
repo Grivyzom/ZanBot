@@ -1,4 +1,5 @@
-// src/utils/tagsEmbed.ts
+// src/utils/tagsEmbed.ts - VERSIÓN MEJORADA
+
 import {
   EmbedBuilder,
   TextChannel,
@@ -7,7 +8,7 @@ import {
   ButtonStyle
 } from 'discord.js';
 import { getEmbedColor } from './getEmbedColor';
-import { TAG_CATEGORIES } from '../config/tagsConfig';
+import { TAG_CATEGORIES, getRoleCategories } from '../config/tagsConfig';
 
 export async function publishTagsEmbed(channel: TextChannel): Promise<void> {
   try {
@@ -15,7 +16,7 @@ export async function publishTagsEmbed(channel: TextChannel): Promise<void> {
     const messages = await channel.messages.fetch({ limit: 50 });
     const existingEmbed = messages.find(msg => 
       msg.author.id === channel.client.user!.id && 
-      msg.embeds[0]?.title?.includes('🏷️ Sistema de Tags')
+      msg.embeds[0]?.title?.includes('🏷️ Tags Personales')
     );
 
     if (existingEmbed) {
@@ -23,116 +24,118 @@ export async function publishTagsEmbed(channel: TextChannel): Promise<void> {
       return;
     }
 
-    // Crear el embed principal
+    // Embed principal más limpio
     const mainEmbed = new EmbedBuilder()
-      .setTitle('🏷️ Sistema de Tags Personales')
+      .setTitle('🏷️ Tags Personales')
       .setDescription(
-        '¡Bienvenido al sistema de tags de **Grivyzom**! 🎉\n\n' +
-        'Los tags te permitirán:\n' +
-        '• 🤝 **Conectar** con otros miembros que compartan tus intereses\n' +
-        '• 🎯 **Encontrar** personas con gustos similares\n' +
-        '• 🏆 **Obtener roles** especiales según tus selecciones\n' +
-        '• 📊 **Participar** en estadísticas del servidor\n\n' +
-        '**¿Cómo funciona?**\n' +
-        '1. Usa el comando `/tags setup` para configurar tus tags\n' +
-        '2. Selecciona las categorías que te representen\n' +
-        '3. ¡Disfruta de las conexiones que harás!\n\n' +
-        '**Categorías disponibles:**'
+        '**¡Conecta con la comunidad!** 🤝\n\n' +
+        'Los tags te ayudan a:\n' +
+        '🎯 **Encontrar** personas con intereses similares\n' +
+        '🏆 **Obtener roles** especiales automáticamente\n' +
+        '📊 **Participar** en eventos y estadísticas\n\n' +
+        '**¿Cómo empezar?**\n' +
+        '¡Simplemente usa `/tags setup` y selecciona lo que te represente!'
       )
       .setColor(getEmbedColor())
+      .setThumbnail(channel.guild.iconURL() || null)
       .setFooter({ 
-        text: 'Sistema de Tags • Grivyzom'
-      })
-      .setTimestamp();
-
-    // Añadir las categorías como campos
-    TAG_CATEGORIES.forEach(category => {
-      const optionsPreview = category.options
-        .slice(0, 3)
-        .map(opt => `${opt.emoji || '•'} ${opt.label}`)
-        .join(', ');
-      
-      const moreCount = category.options.length > 3 ? ` y ${category.options.length - 3} más` : '';
-      
-      mainEmbed.addFields({
-        name: `${category.emoji} ${category.name}`,
-        value: `${category.description}\n*Ej: ${optionsPreview}${moreCount}*`,
-        inline: true
+        text: '¡Configura tus tags en segundos!', 
+        iconURL: channel.client.user?.displayAvatarURL() 
       });
-    });
 
-    // Crear botones de acción
+    // Botones más llamativos
     const buttonsRow = new ActionRowBuilder<ButtonBuilder>()
       .addComponents(
         new ButtonBuilder()
           .setCustomId('tags-setup-button')
-          .setLabel('🏷️ Configurar mis Tags')
-          .setStyle(ButtonStyle.Primary),
+          .setLabel('Configurar Tags')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('🏷️'),
         new ButtonBuilder()
           .setCustomId('tags-view-button')
-          .setLabel('👀 Ver mis Tags')
-          .setStyle(ButtonStyle.Secondary),
+          .setLabel('Ver mis Tags')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('👀'),
         new ButtonBuilder()
           .setCustomId('tags-help-button')
-          .setLabel('❓ Ayuda')
+          .setLabel('Ayuda')
           .setStyle(ButtonStyle.Secondary)
+          .setEmoji('❓')
       );
 
-    // Crear embed de ejemplos
+    // Embed de categorías de forma más visual
+    const categoriesEmbed = new EmbedBuilder()
+      .setTitle('📋 Categorías Disponibles')
+      .setColor(getEmbedColor())
+      .setDescription(
+        'Estas son las categorías que puedes configurar:\n'
+      );
+
+    // Separar categorías con roles y sin roles
+    const roleCategories = getRoleCategories();
+    const otherCategories = TAG_CATEGORIES.filter(cat => !cat.hasRoles);
+
+    if (roleCategories.length > 0) {
+      const roleText = roleCategories
+        .map(cat => `${cat.emoji} **${cat.name}** - ${cat.description} ${cat.hasRoles ? '🏆' : ''}`)
+        .join('\n');
+      
+      categoriesEmbed.addFields({
+        name: '🏆 Con Roles Automáticos',
+        value: roleText,
+        inline: false
+      });
+    }
+
+    if (otherCategories.length > 0) {
+      const otherText = otherCategories
+        .map(cat => `${cat.emoji} **${cat.name}** - ${cat.description}`)
+        .join('\n');
+      
+      categoriesEmbed.addFields({
+        name: '📝 Para Personalización',
+        value: otherText,
+        inline: false
+      });
+    }
+
+    // Embed de ejemplos simplificado
     const exampleEmbed = new EmbedBuilder()
-      .setTitle('💡 Ejemplos de Tags')
-      .setDescription('Aquí algunos ejemplos de cómo se ven los tags configurados:')
+      .setTitle('✨ Ejemplos de Tags')
       .setColor(getEmbedColor())
       .addFields(
         {
-          name: '🌎 País',
-          value: '🇲🇽 México',
+          name: '🌎 País → 🏆 Rol',
+          value: '🇨🇱 Chile, 🇵🇪 Perú, 🇨🇴 Colombia...',
           inline: true
         },
         {
-          name: '🎂 Edad',
-          value: '🧒 16-18 años',
+          name: '🎂 Edad → 🏆 Rol', 
+          value: '👶 13-15, 🧒 16-18, 👨‍🎓 19-25...',
           inline: true
         },
         {
-          name: '⛏️ Minecraft',
-          value: '☕ Java Edition',
+          name: '⛏️ Minecraft → 🏆 Rol',
+          value: '☕ Java, 🪨 Bedrock, 🔄 Ambas',
           inline: true
         },
         {
-          name: '🎮 Juegos',
-          value: '⛏️ Minecraft\n🌪️ Fortnite\n🎯 Valorant',
+          name: '🎮 Juegos Favoritos',
+          value: '⛏️ Minecraft, 🎯 Valorant, 🌪️ Fortnite...',
           inline: true
         },
         {
           name: '💻 Programación',
-          value: '🟨 JavaScript\n🐍 Python',
+          value: '🟨 JavaScript, 🐍 Python, ☕ Java...',
           inline: true
         },
         {
           name: '🌟 Intereses',
-          value: '🎮 Gaming\n🎨 Arte\n🎵 Música',
+          value: '🎮 Gaming, 🎨 Arte, 🎵 Música...',
           inline: true
         }
-      );
-
-    // Embed de comandos
-    const commandsEmbed = new EmbedBuilder()
-      .setTitle('📝 Comandos Disponibles')
-      .setColor(getEmbedColor())
-      .addFields(
-        {
-          name: '🏷️ Configuración',
-          value: '`/tags setup` - Configura tus tags personales\n`/tags view` - Ver tus tags o los de otro usuario\n`/tags remove` - Eliminar un tag específico',
-          inline: false
-        },
-        {
-          name: '📊 Para Administradores',
-          value: '`/tagsstats general` - Estadísticas generales\n`/tagsstats category` - Stats de una categoría\n`/tagsstats users` - Usuarios con tags específicos',
-          inline: false
-        }
       )
-      .setFooter({ text: 'Los comandos se usan escribiendo / seguido del comando' });
+      .setFooter({ text: '🏆 = Otorga rol automático' });
 
     // Enviar los embeds
     await channel.send({ 
@@ -140,60 +143,64 @@ export async function publishTagsEmbed(channel: TextChannel): Promise<void> {
       components: [buttonsRow] 
     });
     
+    await channel.send({ embeds: [categoriesEmbed] });
     await channel.send({ embeds: [exampleEmbed] });
-    await channel.send({ embeds: [commandsEmbed] });
 
-    console.log('✅ Embed de tags publicado correctamente');
+    console.log('✅ Embed de tags mejorado publicado correctamente');
 
   } catch (error) {
     console.error('❌ Error al publicar embed de tags:', error);
   }
 }
 
-// Función para manejar las interacciones de los botones
+// Manejo de botones mejorado
 export async function handleTagsButtonInteraction(interaction: any) {
   if (!interaction.isButton()) return;
 
   switch (interaction.customId) {
     case 'tags-setup-button':
-      // Simular el comando /tags setup
       await interaction.reply({
-        content: '🏷️ Usa el comando `/tags setup` para configurar tus tags.',
+        content: '🏷️ Usa `/tags setup` para empezar a configurar tus tags.\n' +
+                '¡Es súper fácil y rápido! ⚡',
         ephemeral: true
       });
       break;
 
     case 'tags-view-button':
-      // Simular el comando /tags view
       await interaction.reply({
-        content: '👀 Usa el comando `/tags view` para ver tus tags actuales.',
+        content: '👀 Usa `/tags view` para ver todos tus tags actuales.\n' +
+                '¿Quieres ver los de alguien más? Menciona al usuario en el comando.',
         ephemeral: true
       });
       break;
 
     case 'tags-help-button':
       const helpEmbed = new EmbedBuilder()
-        .setTitle('❓ Ayuda - Sistema de Tags')
+        .setTitle('❓ Guía Rápida de Tags')
         .setDescription(
-          '**¿Qué son los tags?**\n' +
-          'Los tags son etiquetas que puedes configurar para describir tus intereses, ubicación, edad, juegos favoritos y más.\n\n' +
-          '**¿Para qué sirven?**\n' +
-          '• Conectar con otros miembros similares\n' +
-          '• Participar en eventos específicos\n' +
-          '• Obtener roles automáticos\n' +
-          '• Ser encontrado por otros con intereses similares\n\n' +
-          '**¿Cómo configurarlos?**\n' +
-          '1. Usa `/tags setup`\n' +
-          '2. Selecciona una categoría\n' +
-          '3. Elige tus opciones\n' +
-          '4. ¡Listo!\n\n' +
-          '**¿Puedo cambiarlos?**\n' +
-          'Sí, puedes usar `/tags setup` nuevamente para actualizar cualquier categoría, o `/tags remove` para eliminar una específica.\n\n' +
-          '**¿Son privados?**\n' +
-          'Los tags son visibles para otros miembros del servidor cuando usan `/tags view`, pero solo se muestran las categorías que hayas configurado.'
+          '**¿Qué son los tags?** 🏷️\n' +
+          'Son etiquetas personales que describen quién eres.\n\n' +
+          '**¿Para qué sirven?** ✨\n' +
+          '• 🤝 Conectar con personas similares\n' +
+          '• 🏆 Obtener roles automáticos\n' +
+          '• 📊 Participar en estadísticas\n' +
+          '• 🎯 Ser encontrado por otros\n\n' +
+          '**¿Cómo configurarlos?** ⚡\n' +
+          '1. Escribe `/tags setup`\n' +
+          '2. Elige una categoría\n' +
+          '3. Selecciona tus opciones\n' +
+          '4. ¡Listo! Ya tienes tus tags\n\n' +
+          '**Comandos útiles:** 📝\n' +
+          '• `/tags view` - Ver tus tags\n' +
+          '• `/tags remove` - Eliminar un tag\n' +
+          '• `/tags setup` - Configurar/actualizar'
         )
         .setColor(getEmbedColor())
-        .setFooter({ text: '¿Más preguntas? Contacta al staff del servidor' });
+        .setFooter({ 
+          text: '¿Más dudas? Contacta al staff', 
+          iconURL: interaction.guild?.iconURL() 
+        })
+        .setTimestamp();
 
       await interaction.reply({
         embeds: [helpEmbed],
