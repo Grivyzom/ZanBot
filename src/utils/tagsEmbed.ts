@@ -1,4 +1,4 @@
-// src/utils/tagsEmbed.ts - VERSIÓN MEJORADA
+// src/utils/tagsEmbed.ts - VERSIÓN SIMPLIFICADA
 
 import {
   EmbedBuilder,
@@ -24,7 +24,7 @@ export async function publishTagsEmbed(channel: TextChannel): Promise<void> {
       return;
     }
 
-    // Embed principal más limpio
+    // Embed principal simplificado
     const mainEmbed = new EmbedBuilder()
       .setTitle('🏷️ Tags Personales')
       .setDescription(
@@ -63,90 +63,13 @@ export async function publishTagsEmbed(channel: TextChannel): Promise<void> {
           .setEmoji('❓')
       );
 
-    // Embed de categorías de forma más visual
-    const categoriesEmbed = new EmbedBuilder()
-      .setTitle('📋 Categorías Disponibles')
-      .setColor(getEmbedColor())
-      .setDescription(
-        'Estas son las categorías que puedes configurar:\n'
-      );
-
-    // Separar categorías con roles y sin roles
-    const roleCategories = getRoleCategories();
-    const otherCategories = TAG_CATEGORIES.filter(cat => !cat.hasRoles);
-
-    if (roleCategories.length > 0) {
-      const roleText = roleCategories
-        .map(cat => `${cat.emoji} **${cat.name}** - ${cat.description} ${cat.hasRoles ? '🏆' : ''}`)
-        .join('\n');
-      
-      categoriesEmbed.addFields({
-        name: '🏆 Con Roles Automáticos',
-        value: roleText,
-        inline: false
-      });
-    }
-
-    if (otherCategories.length > 0) {
-      const otherText = otherCategories
-        .map(cat => `${cat.emoji} **${cat.name}** - ${cat.description}`)
-        .join('\n');
-      
-      categoriesEmbed.addFields({
-        name: '📝 Para Personalización',
-        value: otherText,
-        inline: false
-      });
-    }
-
-    // Embed de ejemplos simplificado
-    const exampleEmbed = new EmbedBuilder()
-      .setTitle('✨ Ejemplos de Tags')
-      .setColor(getEmbedColor())
-      .addFields(
-        {
-          name: '🌎 País → 🏆 Rol',
-          value: '🇨🇱 Chile, 🇵🇪 Perú, 🇨🇴 Colombia...',
-          inline: true
-        },
-        {
-          name: '🎂 Edad → 🏆 Rol', 
-          value: '👶 13-15, 🧒 16-18, 👨‍🎓 19-25...',
-          inline: true
-        },
-        {
-          name: '⛏️ Minecraft → 🏆 Rol',
-          value: '☕ Java, 🪨 Bedrock, 🔄 Ambas',
-          inline: true
-        },
-        {
-          name: '🎮 Juegos Favoritos',
-          value: '⛏️ Minecraft, 🎯 Valorant, 🌪️ Fortnite...',
-          inline: true
-        },
-        {
-          name: '💻 Programación',
-          value: '🟨 JavaScript, 🐍 Python, ☕ Java...',
-          inline: true
-        },
-        {
-          name: '🌟 Intereses',
-          value: '🎮 Gaming, 🎨 Arte, 🎵 Música...',
-          inline: true
-        }
-      )
-      .setFooter({ text: '🏆 = Otorga rol automático' });
-
-    // Enviar los embeds
+    // Enviar solo el embed principal con los botones
     await channel.send({ 
       embeds: [mainEmbed], 
       components: [buttonsRow] 
     });
     
-    await channel.send({ embeds: [categoriesEmbed] });
-    await channel.send({ embeds: [exampleEmbed] });
-
-    console.log('✅ Embed de tags mejorado publicado correctamente');
+    console.log('✅ Embed de tags simplificado publicado correctamente');
 
   } catch (error) {
     console.error('❌ Error al publicar embed de tags:', error);
