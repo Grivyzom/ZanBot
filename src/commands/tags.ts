@@ -201,7 +201,6 @@ async function handleCategorySelection(interaction: StringSelectMenuInteraction,
   });
 }
 
-
 async function handleOptionSelection(interaction: StringSelectMenuInteraction, categoryId: string, selectedValues: string[]) {
   const category = getTagCategoryById(categoryId);
   if (!category) return;
@@ -245,17 +244,9 @@ async function handleOptionSelection(interaction: StringSelectMenuInteraction, c
       .setFooter({ text: '¡Gracias por personalizar tu perfil! 🎯' })
       .setTimestamp();
 
-    // ✨ CAMBIO PRINCIPAL: Usar followUp con ephemeral en lugar de update
     await interaction.update({
-      content: '✅ ¡Tags actualizados! Revisa el mensaje privado para más detalles.',
-      embeds: [],
-      components: [] // Remover componentes después de completar
-    });
-
-    // Enviar confirmación detallada como mensaje efímero
-    await interaction.followUp({
       embeds: [embed],
-      ephemeral: true // 🔑 ESTO HACE QUE SOLO EL USUARIO LO VEA
+      components: [] // Remover componentes después de completar
     });
 
     // Enviar notificación por DM
@@ -288,16 +279,9 @@ async function handleOptionSelection(interaction: StringSelectMenuInteraction, c
       .setColor('#ff0000') // Rojo para error
       .setTimestamp();
 
-    // También hacer el mensaje de error efímero
     await interaction.update({
-      content: '❌ Hubo un error. Revisa el mensaje privado para más detalles.',
-      embeds: [],
-      components: []
-    });
-
-    await interaction.followUp({
       embeds: [errorEmbed],
-      ephemeral: true // Error también privado
+      components: []
     });
   }
 }
