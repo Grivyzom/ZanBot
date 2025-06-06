@@ -1,5 +1,5 @@
 // src/commands/mantenimiento.ts
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits, TextChannel, ChannelType } from 'discord.js';
 import { requireRole } from '../utils/requireRole';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -53,6 +53,24 @@ export const data = new SlashCommandBuilder()
       .setName('detalles')
       .setDescription('Detalles adicionales o mejoras que se realizarán')
       .setRequired(false)
+  )
+  .addChannelOption(option =>
+    option
+      .setName('canal')
+      .setDescription('Canal donde enviar el anuncio de mantenimiento')
+      .setRequired(false)
+      .addChannelTypes(0) // Solo canales de texto
+  )
+  .addStringOption(option =>
+    option
+      .setName('mencion')
+      .setDescription('Tipo de mención a enviar (opcional)')
+      .setRequired(false)
+      .addChoices(
+        { name: '@everyone - Mencionar a todos', value: 'everyone' },
+        { name: '@here - Mencionar solo usuarios activos', value: 'here' },
+        { name: 'Sin mención', value: 'none' }
+      )
   )
   .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
 
@@ -154,7 +172,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       value: 
         `• 🌐 [Página Web](https://grivyzom.com/)\n` +
         `• 🛒 [Tienda](https://store.grivyzom.com/)\n`,
-        //*`• 📊 [Estado del Servidor](https://status.grivyzom.com/)`, */
+        //* `• 📊 [Estado del Servidor](https://status.grivyzom.com/)`*/
       inline: false
     }
   )
