@@ -59,7 +59,7 @@ export const data = new SlashCommandBuilder()
       .setName('canal')
       .setDescription('Canal donde enviar el anuncio de mantenimiento')
       .setRequired(false)
-      .addChannelTypes(0) // Solo canales de texto
+      .addChannelTypes(ChannelType.GuildText) // Solo canales de texto
   )
   .addStringOption(option =>
     option
@@ -84,6 +84,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const fecha = interaction.options.getString('fecha') || 'Hoy';
   const razon = interaction.options.getString('razon');
   const detalles = interaction.options.getString('detalles');
+  const canalOpcion = interaction.options.getChannel('canal');
+  const mencionTipo = interaction.options.getString('mencion') || 'none';
 
   // Validar formato de hora
   const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -103,6 +105,38 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         ephemeral: true
       });
     }
+  }
+
+  // Determinar el canal de destino
+  let canalDestino: TextChannel;
+  
+  if (canalOpcion) {
+    // Verificar que el canal seleccionado sea un canal de texto
+    if (canalOpcion.type !== ChannelType.GuildText) {
+      return await interaction.reply({
+        content: '❌ **Error:** El canal seleccionado debe ser un canal de texto.',
+        ephemeral: true
+      });
+    }
+    canalDestino = canalOpcion as TextChannel;
+  } else {
+    // Usar el canal actual si no se especifica uno
+    if (!interaction.channel || interaction.channel.type !== ChannelType.GuildText) {
+      return await interaction.reply({
+        content: '❌ **Error:** Debes especificar un canal de texto válido.',
+        ephemeral: true
+      });
+    }
+    canalDestino = interaction.channel as TextChannel;
+  }
+
+  // Verificar permisos del bot en el canal de destino
+  const botMember = interaction.guild?.members.me;
+  if (!botMember?.permissionsIn(canalDestino).has(['SendMessages', 'EmbedLinks'])) {
+    return await interaction.reply({
+      content: `❌ **Error:** No tengo permisos para enviar mensajes o embeds en ${canalDestino}.`,
+      ephemeral: true
+    });
   }
 
   // Obtener información del servidor
@@ -171,8 +205,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       name: '🔗 Enlaces Útiles',
       value: 
         `• 🌐 [Página Web](https://grivyzom.com/)\n`,
-        //* */`• 🛒 [Tienda](https://store.grivyzom.com/)\n`
-        //* `• 📊 [Estado del Servidor](https://status.grivyzom.com/)`*/
+        //* `• 🛒 [Tienda](https://store.grivyzom.com/)`,*/
       inline: false
     }
   )
@@ -183,17 +216,43 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   .setTimestamp()
   .setImage('https://grivyzom.com/mantenimiento-banner.png'); // Banner opcional
 
-  // Enviar el embed
-  await interaction.reply({ embeds: [embed] });
+  // Preparar el contenido del mensaje con mención
+  let mensajeContenido = '';
+  
+  // Configurar mención según la opción seleccionada
+  if (mencionTipo === 'everyone') {
+    mensajeContenido = '@everyone';
+  } else if (mencionTipo === 'here') {
+    mensajeContenido = '@here';
+  }
 
-  // Enviar mensaje adicional con @everyone si es mantenimiento de todos los servidores
-  if (servidor === 'todos') {
-    setTimeout(async () => {
-      await interaction.followUp({
-        content: '@everyone',
-        allowedMentions: { parse: ['everyone'] }
-      });
-    }, 1000);
+  // Configurar menciones permitidas
+  const allowedMentions = mencionTipo !== 'none' ? { parse: [mencionTipo as 'everyone' | 'here'] } : { parse: [] };
+
+  // Enviar el mensaje al canal de destino
+  try {
+    await canalDestino.send({ 
+      content: mensajeContenido || undefined,
+      embeds: [embed],
+      allowedMentions 
+    });
+
+    // Confirmar el envío
+    const confirmacion = canalDestino.id === interaction.channelId 
+      ? '✅ **Anuncio de mantenimiento enviado correctamente.**'
+      : `✅ **Anuncio de mantenimiento enviado correctamente en ${canalDestino}.**`;
+    
+    await interaction.reply({ 
+      content: confirmacion,
+      ephemeral: true 
+    });
+
+  } catch (error) {
+    console.error('Error enviando anuncio de mantenimiento:', error);
+    await interaction.reply({
+      content: '❌ **Error:** No se pudo enviar el anuncio de mantenimiento. Verifica los permisos del bot.',
+      ephemeral: true
+    });
   }
 }
 
