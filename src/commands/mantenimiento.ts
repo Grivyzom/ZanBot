@@ -170,8 +170,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     {
       name: '🔗 Enlaces Útiles',
       value: 
-        `• 🌐 [Página Web](https://grivyzom.com/)\n` +
-        `• 🛒 [Tienda](https://store.grivyzom.com/)\n`,
+        `• 🌐 [Página Web](https://grivyzom.com/)\n`
+        //* */`• 🛒 [Tienda](https://store.grivyzom.com/)\n`
         //* `• 📊 [Estado del Servidor](https://status.grivyzom.com/)`*/
       inline: false
     }
