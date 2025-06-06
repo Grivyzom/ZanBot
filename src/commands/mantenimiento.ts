@@ -227,7 +227,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   }
 
   // Configurar menciones permitidas
-  const allowedMentions = mencionTipo !== 'none' ? { parse: [mencionTipo as 'everyone' | 'here'] } : { parse: [] };
+  const allowedMentions = mencionTipo !== 'none' ? { parse: [mencionTipo as any] } : { parse: [] };
 
   // Enviar el mensaje al canal de destino
   try {
