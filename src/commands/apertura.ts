@@ -266,17 +266,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   // Añadir información de conexión
   embed.addFields(
     {
-      name: '🎮 Información de Conexión',
+      name: '🎮 Dirección IP',
       value: getConnectionInfo(servidor),
-      inline: false
-    },
-    {
-      name: '📢 ¡Importante!',
-      value: 
-        '• Todo tu progreso ha sido conservado\n' +
-        '• Las mejoras están activas desde ahora\n' +
-        '• Reporta cualquier problema en este canal\n' +
-        '• ¡Disfruta de la experiencia mejorada!',
       inline: false
     }
   )
