@@ -212,7 +212,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     })
     .setDescription(
       `**${servidorInfo.emoji} ${servidorInfo.nombre}** está ahora **DISPONIBLE** para todos los jugadores.\n\n` +
-      `¡Bienvenidos de vuelta! El servidor ha sido optimizado y está listo para ofrecerte la mejor experiencia de juego.`
+      `¡El Survival está listo! El server ha sido optimizado y está listo para ofrecerte la mejor experiencia de juego.`
     )
     .addFields(
       {
@@ -227,7 +227,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       },
       {
         name: '🌟 Estado Actual',
-        value: '🟢 **ONLINE Y DISPONIBLE**',
+        value: '🟢 **ONLINE**',
         inline: true
       }
     );
