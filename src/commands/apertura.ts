@@ -278,14 +278,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         '• Reporta cualquier problema en este canal\n' +
         '• ¡Disfruta de la experiencia mejorada!',
       inline: false
-    },
-    {
-      name: '🔗 Enlaces Útiles',
-      value: 
-        `• 🌐 [Página Web](https://grivyzom.com/)\n` +
-        `• 💬 [Discord](https://discord.gg/grivyzom)\n` +
-        `• 📱 [Redes Sociales](https://grivyzom.com/redes)`,
-      inline: false
     }
   )
   .setFooter({
@@ -358,10 +350,10 @@ function getConnectionInfo(servidor: string): string {
   const conexiones: Record<string, string> = {
     'java': '🖥️ **Java Edition:**\n• IP: `play.grivyzom.com`\n• Versión: 1.20.1+',
     'bedrock': '📱 **Bedrock Edition:**\n• IP: `bedrock.grivyzom.com`\n• Puerto: `21384`',
-    'creativo': '🎨 **Servidor Creativo:**\n• IP: `creativo.grivyzom.com`\n• Modo: Creativo',
-    'survival': '⚔️ **Servidor Survival:**\n• IP: `survival.grivyzom.com`\n• Modo: Survival',
-    'skyblock': '🏝️ **Servidor Skyblock:**\n• IP: `skyblock.grivyzom.com`\n• Modo: Skyblock',
-    'prison': '⛓️ **Servidor Prison:**\n• IP: `prison.grivyzom.com`\n• Modo: Prison',
+    'creativo': '🎨 **Servidor Creativo:**\n• IP: `play.grivyzom.com`\n• Modo: Creativo',
+    'survival': '⚔️ **Servidor Survival:**\n• IP: `play.grivyzom.com`\n• Modo: Survival',
+    'skyblock': '🏝️ **Servidor Skyblock:**\n• IP: `play.grivyzom.com`\n• Modo: Skyblock',
+    'prison': '⛓️ **Servidor Prison:**\n• IP: `play.grivyzom.com`\n• Modo: Prison',
     'todos': '🌐 **Todos los Servidores:**\n• IP Principal: `play.grivyzom.com`\n• Bedrock: `bedrock.grivyzom.com:21384`'
   };
 
