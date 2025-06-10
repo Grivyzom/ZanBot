@@ -22,7 +22,7 @@ function buildAvatarEmbed(user: User, member: GuildMember | null, requester: Use
 
 export const data = new SlashCommandBuilder()
   .setName('avatar')
-  .setDescription('Muestra el avatar de un usuario.')
+  .setDescription('Se muestra el avatar de un usuario')
   .addUserOption(option =>
     option
       .setName('usuario')
