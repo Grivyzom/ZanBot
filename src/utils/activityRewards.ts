@@ -1,4 +1,4 @@
-// src/utils/activityRewards.ts
+// src/utils/activityRewards.ts - ACTUALIZACIÓN PARA CANAL DE NIVEL FIJO
 import { Client, Message, VoiceState, TextChannel, EmbedBuilder, User, GuildMember } from 'discord.js';
 import { addXPFromSource, getLevelData, isMilestoneLevel, generateLevelCard } from './levelSystem';
 import db from '../database';
@@ -53,12 +53,12 @@ const config = {
     devChannel: 1.2,            // +20% en canales de desarrollo
   },
   
-  // Notificaciones y anuncios
+  // Notificaciones y anuncios - ACTUALIZADO
   notifications: {
     levelUpDmEnabled: false,     // Notificar por DM al subir de nivel
     announceInChannel: true,     // Anunciar niveles en canal
     announceMilestones: true,    // Anunciar hitos importantes
-    announceLevelUpChannel: null, // ID del canal para anuncios (si es null, se anuncia en el mismo canal)
+    announceLevelUpChannel: process.env.LEVEL_CHANNEL_ID, // Canal específico para level-ups
   },
 };
 
@@ -170,9 +170,9 @@ class ActivityTracker {
     // Añadir XP al usuario
     const xpResult = await addXPFromSource(userId, guildId, xpToAward, 'message');
     
-    // Notificar si subió de nivel
+    // Notificar si subió de nivel - CAMBIO PRINCIPAL AQUÍ
     if (xpResult.leveledUp) {
-      await this.handleLevelUp(message.member!, xpResult.level, message.channel as TextChannel);
+      await this.handleLevelUp(message.member!, xpResult.level, message.guild);
     }
   }
   
@@ -272,16 +272,9 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
     const result = await addXPFromSource(userId, guildId, xpToAward, 'voice');
     activity.voiceXpToday += xpToAward;
 
-    // Anunciar Level-Up si ocurre
+    // Anunciar Level-Up si ocurre - CAMBIO PRINCIPAL AQUÍ
     if (result.leveledUp) {
-      // Usa canal por defecto o el primero de texto que exista
-      const announceChannel =
-        newState.guild.systemChannel ??
-        (newState.guild.channels.cache.find(c => c.isTextBased()) as TextChannel | undefined);
-
-      if (announceChannel) {
-        await this.handleLevelUp(member, result.level, announceChannel);
-      }
+      await this.handleLevelUp(member, result.level, member.guild);
     }
   }
 }
@@ -324,22 +317,11 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
     // Añadir XP al usuario
     const xpResult = await addXPFromSource(userId, guildId, xpToAward, 'voice');
     
-    // Notificar si subió de nivel
+    // Notificar si subió de nivel - CAMBIO PRINCIPAL AQUÍ
     if (xpResult.leveledUp) {
-      // Buscar un canal de texto adecuado para notificar
       const member = await state.guild.members.fetch(userId).catch(() => null);
       if (member) {
-        // Buscar el canal general o el primero disponible
-        const textChannel = state.guild.channels.cache.find(
-          c => c.type === 0 && c.name.includes('general')
-        ) as TextChannel || 
-        state.guild.channels.cache.find(
-          c => c.type === 0
-        ) as TextChannel;
-        
-        if (textChannel) {
-          await this.handleLevelUp(member, xpResult.level, textChannel);
-        }
+        await this.handleLevelUp(member, xpResult.level, state.guild);
       }
     }
   }
@@ -444,13 +426,24 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
       'boost'
     );
     
-    // Notificar en canal de sistema o general
-    const systemChannel = member.guild.systemChannel || 
-                         member.guild.channels.cache.find(
-                           c => c.type === 0 && c.name.includes('general')
-                         ) as TextChannel;
+    // NUEVO: Usar canal de nivel dedicado para boost
+    let targetChannel: TextChannel | null = null;
     
-    if (systemChannel) {
+    if (config.notifications.announceLevelUpChannel) {
+      targetChannel = await this.client.channels.fetch(config.notifications.announceLevelUpChannel)
+        .then(ch => ch as TextChannel)
+        .catch(() => null);
+    }
+    
+    // Fallback al canal del sistema si no está configurado el canal de nivel
+    if (!targetChannel) {
+      targetChannel = member.guild.systemChannel || 
+                     member.guild.channels.cache.find(
+                       c => c.type === 0 && c.name.includes('general')
+                     ) as TextChannel;
+    }
+    
+    if (targetChannel) {
       const embed = new EmbedBuilder()
         .setColor('#f47fff')
         .setTitle('🚀 ¡Impulso de Servidor!')
@@ -458,10 +451,10 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
         .setThumbnail(member.user.displayAvatarURL())
         .setTimestamp();
       
-      await systemChannel.send({ embeds: [embed] });
+      await targetChannel.send({ embeds: [embed] });
       
       if (leveledUp) {
-        await this.handleLevelUp(member, level, systemChannel);
+        await this.handleLevelUp(member, level, member.guild);
       }
     }
   }
@@ -486,10 +479,7 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
     
     // Notificar (opcional)
     if (leveledUp) {
-      const systemChannel = member.guild.systemChannel as TextChannel;
-      if (systemChannel) {
-        await this.handleLevelUp(member, level, systemChannel);
-      }
+      await this.handleLevelUp(member, level, member.guild);
     }
   }
   
@@ -638,27 +628,46 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
     console.log(`🔄 Próximo reset de XP diario en ${Math.floor(timeUntilMidnight / 3600000)} horas`);
   }
   
-  // Manejar la subida de nivel
+  // ========== MANEJAR SUBIDA DE NIVEL - MÉTODO PRINCIPAL ACTUALIZADO ==========
   private async handleLevelUp(
     member: GuildMember, 
     newLevel: number, 
-    channel: TextChannel
+    guild: any // Puede ser Guild directamente
   ): Promise<void> {
-    // 1. Crear mensaje de nivel según configuración
-    if (config.notifications.announceInChannel || 
-       (config.notifications.announceMilestones && isMilestoneLevel(newLevel))) {
-      
-      // Determinar canal para anuncio
-      let announceChannel = channel;
-      if (config.notifications.announceLevelUpChannel) {
-        const targetChannel = await this.client.channels.fetch(
-          config.notifications.announceLevelUpChannel
-        ).catch(() => null);
-        
+    // 1. Buscar el canal de nivel dedicado primero
+    let announceChannel: TextChannel | null = null;
+    
+    if (config.notifications.announceLevelUpChannel) {
+      try {
+        const targetChannel = await this.client.channels.fetch(config.notifications.announceLevelUpChannel);
         if (targetChannel && targetChannel.type === 0) {
           announceChannel = targetChannel as TextChannel;
+          console.log(`✅ Usando canal de nivel dedicado: ${announceChannel.name}`);
         }
+      } catch (error) {
+        console.error('❌ Error al buscar canal de nivel configurado:', error);
       }
+    }
+    
+    // 2. Fallback si no se encontró el canal configurado
+    if (!announceChannel) {
+      // Buscar canal del sistema o canal general
+      announceChannel = guild.systemChannel || 
+                       guild.channels.cache.find(
+                         (c: any) => c.type === 0 && (c.name.includes('general') || c.name.includes('chat'))
+                       ) as TextChannel;
+      
+      if (announceChannel) {
+        console.log(`⚠️ Usando canal fallback: ${announceChannel.name}`);
+      } else {
+        console.error('❌ No se encontró ningún canal válido para anunciar level-up');
+        return;
+      }
+    }
+    
+    // 3. Solo proceder si se debe anunciar en canal
+    if (config.notifications.announceInChannel || 
+       (config.notifications.announceMilestones && isMilestoneLevel(newLevel))) {
       
       // Personalizar mensaje según nivel
       let message = `¡**${member.displayName}** ha subido al nivel **${newLevel}**! 🎉`;
@@ -695,6 +704,7 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
             .setImage('attachment://levelcard.png');
           
           await announceChannel.send({ embeds: [embed], files: [levelCard] });
+          console.log(`✅ Tarjeta de nivel ${newLevel} enviada para ${member.displayName} en ${announceChannel.name}`);
         } catch (error) {
           console.error('Error generando tarjeta de nivel:', error);
           // Fallback a embed simple
@@ -704,6 +714,7 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
             .setThumbnail(member.user.displayAvatarURL());
           
           await announceChannel.send({ embeds: [embed] });
+          console.log(`✅ Embed de nivel ${newLevel} enviado para ${member.displayName} en ${announceChannel.name}`);
         }
       } else {
         // Para niveles normales, usar embed simple
@@ -713,10 +724,11 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
           .setThumbnail(member.user.displayAvatarURL());
         
         await announceChannel.send({ embeds: [embed] });
+        console.log(`✅ Nivel ${newLevel} anunciado para ${member.displayName} en ${announceChannel.name}`);
       }
     }
     
-    // 2. Enviar DM si está configurado
+    // 4. Enviar DM si está configurado
     if (config.notifications.levelUpDmEnabled) {
       try {
         const dmEmbed = new EmbedBuilder()
@@ -733,7 +745,7 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
       }
     }
     
-    // 3. Verificar y aplicar recompensas por nivel
+    // 5. Verificar y aplicar recompensas por nivel
     await this.processLevelRewards(member, newLevel);
     await applyRankRoles(member, newLevel);
   }
@@ -837,7 +849,5 @@ async processVoiceState(oldState: VoiceState, newState: VoiceState): Promise<voi
   }
 
 }
-
-
 
 export default ActivityTracker;
