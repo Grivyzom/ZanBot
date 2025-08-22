@@ -159,7 +159,7 @@ async function mostrarCategoria(interaction: ChatInputCommandInteraction, catego
     .setTimestamp();
 
   // Añadir tutoriales como campos
-  tutoriales.items.forEach((tutorial, index) => {
+  tutoriales.items.forEach((tutorial: any, index: number) => {
     embed.addFields({
       name: `${index + 1}. ${tutorial.titulo}`,
       value: `${tutorial.descripcion}\n${tutorial.enlace ? `🔗 [Ver Tutorial](${tutorial.enlace})` : '📝 Disponible próximamente'}`,

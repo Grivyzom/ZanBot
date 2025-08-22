@@ -158,7 +158,7 @@ async function mostrarSeccion(interaction: ChatInputCommandInteraction, seccion:
     .setTimestamp();
 
   // Añadir campos de contenido
-  contenido.secciones.forEach(seccion => {
+  contenido.secciones.forEach((seccion: any) => {
     embed.addFields({
       name: seccion.nombre,
       value: seccion.contenido,
