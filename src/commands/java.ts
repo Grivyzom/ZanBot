@@ -34,12 +34,11 @@ export default {
         {
           name: 'Información del servidor',
           value:
-            '• Dirección del servidor (IP): `play.grivyzom.com``\n' +
-            '• Nombre del servidor: Grivyzom\n' +
-            '• Versión recomendada: 1.21.+',
+            'Si no te funciona, prueba esta IP:\n' +
+            'play.grivyzom.com:28192',
         }
       )
-      .setFooter({ text: '¿Quieres unirte en Bedrock? Ve a <#1371879333651677244>' })
+      .setFooter({ text: '¿Quieres unirte en Bedrock? Ve a <#1371883450428031198>' })
       .setImage('https://grivyzom.com/bedrock.png');
 
       await interaction.reply({ embeds: [embed] });

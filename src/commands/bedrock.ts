@@ -29,7 +29,7 @@ export default {
           '• Puerto del servidor: `21384`\n' +
           '• Nombre del servidor: Grivyzom',
       })
-      .setFooter({ text: '¿Quieres unirte con Java? Ve a <#123456789012345678>' })
+      .setFooter({ text: '¿Quieres unirte con Java? Ve a <#1408617845624934430>' })
       .setImage('https://grivyzom.com/bedrock.png');
 
       await interaction.reply({ embeds: [embed] });
